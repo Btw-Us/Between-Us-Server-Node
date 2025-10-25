@@ -106,7 +106,7 @@ ME_CONFIG_BASICAUTH_PASSWORD=YOUR_ME_PASSWORD
 
 5.  **Access Services**
 
-    *   Main App → `http://localhost:3000`
+    *   Main App → `http://localhost:{PORT}` (replace `{PORT}` with your configured port)
     *   MongoDB (Mongo Express) → `http://localhost:8081`
 
 ---
