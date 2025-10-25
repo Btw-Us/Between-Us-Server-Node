@@ -13,6 +13,12 @@ services:
     command: npm run start:dev
     environment:
       - NODE_ENV=development
+    # Memory optimization
+    mem_limit: ${APP_MEM_LIMIT:-512m}
+    mem_reservation: ${APP_MEM_RESERVATION:-256m}
+    memswap_limit: ${APP_MEMSWAP_LIMIT:-512m}
+    cpus: '${APP_CPUS:-1.0}'
+    restart: unless-stopped
     depends_on:
       mongo1:
         condition: service_healthy
@@ -22,6 +28,12 @@ services:
         condition: service_healthy
       mongo-setup:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT}/health"]
+      timeout: 5s
+      retries: 3
+      interval: 30s
+      start_period: 60s
     networks:
       - app-network
 
@@ -33,16 +45,18 @@ services:
       - "${MONGO1_PORT:-27017}:27017"
     command: mongod --replSet ${MONGO_REPLICA_SET:-myReplicaSet} --bind_ip_all
     volumes:
-      - mongodb_data:/data/db
+      - mongo1_data:/data/db
       - ./init-scripts/mongo:/docker-entrypoint-initdb.d
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
       - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       timeout: 20s
       retries: 10
+      interval: 10s
+      start_period: 30s
     networks:
       - app-network
 
@@ -61,9 +75,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       timeout: 20s
       retries: 10
+      interval: 10s
+      start_period: 30s
 
   mongo3:
     image: mongo:7.0
@@ -80,9 +96,11 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       timeout: 20s
       retries: 10
+      interval: 10s
+      start_period: 30s
 
   # Mongo Express for MongoDB management
   mongo-express:
@@ -125,10 +143,28 @@ services:
     networks:
       - app-network
 
+# Named volumes with custom paths using driver options
 volumes:
-  mongodb_data:
+  mongo1_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MONGO1_DATA_PATH:-./data/mongo1_data}
+
   mongo2_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MONGO2_DATA_PATH:-./data/mongo2_data}
+
   mongo3_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MONGO3_DATA_PATH:-./data/mongo3_data}
 
 networks:
   app-network:
