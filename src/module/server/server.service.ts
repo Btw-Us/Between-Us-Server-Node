@@ -14,10 +14,11 @@ class ServerService {
     }
 
     async createServerTokken(generatedFrom: string, createByUserId?: string, expriesAt?: Date) {
-        const tokken = generateUuid();
+        const token = generateUuid();
+        console.log('Generated Server Token:', token);
         const serverToken = new ServerTokenModel({
             GeneratedFrom: generatedFrom,
-            Token: tokken,
+            Token: token,
             CreateByUserId: createByUserId,
             ExpriesAt: expriesAt,
             CreatedAt: new Date()
@@ -26,11 +27,8 @@ class ServerService {
         return serverToken;
     }
 
-    async validateServerToken(token: string) {
-        const tokenRecord = await ServerTokenModel.findOne({
-            Token: token,
-        });
-        return tokenRecord !== null;
+    async getAllServerTokkens() {
+        return await ServerTokenModel.find();
     }
 }
 

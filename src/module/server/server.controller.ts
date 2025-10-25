@@ -19,4 +19,14 @@ const createServerToken = async (req: e.Request, res: e.Response) => {
     }
 }
 
-module.exports = { createServerToken };
+const getAllServerTokens = async (req: e.Request, res: e.Response) => {
+    try {
+        const serverService = new ServerService();
+        const tokens = await serverService.getAllServerTokkens();
+        res.status(200).json(tokens);
+    } catch (error) {
+        res.status(500).json({ error: `Internal error ${error}` });
+    }
+}
+
+module.exports = { createServerToken , getAllServerTokens };
