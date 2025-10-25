@@ -2,18 +2,22 @@ require('./config/env')
 require('./config/serverDatabase');
 require('./config/database');
 import express = require('express');
-const { RouterPaths, version } = require('./config/routePaths');
+const { BetweenUsRoutes, version, ServerApiRoutes } = require('./utils/routePaths');
 import healthRoute = require('./module/health/health');
+import serverRoutes  = require('./module/server/server.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-app.use(RouterPaths.HealthCheck, healthRoute);
+app.use(BetweenUsRoutes.HealthCheck, healthRoute);
+app.use(ServerApiRoutes.Token.ServerToken, serverRoutes);
 
 app.get('/', (req, res) => {
     res.send(`

@@ -2,7 +2,7 @@
 const version = 'v1';
 const basePath = `/api/${version}`;
 
-const RouterPaths = {
+const BetweenUsRoutes = {
     HealthCheck: `${basePath}/health`,
     Users: {
         LogIn: {
@@ -14,4 +14,10 @@ const RouterPaths = {
     },
 };
 
-export = { RouterPaths, version };
+const ServerApiRoutes = {
+    Token:{
+        ServerToken:`${basePath}/server/tokken`,
+    }
+};
+
+export = { BetweenUsRoutes, version, ServerApiRoutes };
