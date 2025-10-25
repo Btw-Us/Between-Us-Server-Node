@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('./config/env')
 import express = require('express');
 const { RouterPaths, version } = require('./config/routePaths');
 import healthRoute = require('./module/health/health');
