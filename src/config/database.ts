@@ -3,9 +3,9 @@ const mongoose = require('mongoose');
 
 connectToServerDatabase()
 async function connectToServerDatabase() {
-    const serverDbUrl = process.env.SERVER_DATABSE_URL;
+    const serverDbUrl = process.env.SERVER_DATABASE_URL;
     if (!serverDbUrl) {
-        throw new Error('SERVER_DATABSE_URL is not defined in environment variables');
+        throw new Error('SERVER_DATABASE_URL is not defined in environment variables');
     }
     try {
         await mongoose.connect(serverDbUrl, {

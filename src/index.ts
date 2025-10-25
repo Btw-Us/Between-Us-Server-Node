@@ -4,7 +4,7 @@ require('./config/database');
 import express = require('express');
 const { BetweenUsRoutes, version, ServerApiRoutes } = require('./utils/routePaths');
 import healthRoute = require('./module/health/health');
-import serverRoutes  = require('./module/server/server.routes');
+import serverRoutes = require('./module/server/server.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
