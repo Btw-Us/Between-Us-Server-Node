@@ -15,7 +15,6 @@ class ServerService {
 
     async createServerTokken(generatedFrom: string, createByUserId?: string, expriesAt?: Date) {
         const token = generateUuid();
-        console.log('Generated Server Token:', token);
         const serverToken = new ServerTokenModel({
             GeneratedFrom: generatedFrom,
             Token: token,

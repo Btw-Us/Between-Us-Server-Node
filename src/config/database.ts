@@ -12,7 +12,6 @@ async function connectToServerDatabase() {
             useNewUrlParser: true,
             useUnifiedTopology: true,
         });
-        console.log('Connected to the BetweenUs database successfully');
     } catch (error) {
         console.error('Error connecting to the BetweenUs database:', error);
         throw error;
