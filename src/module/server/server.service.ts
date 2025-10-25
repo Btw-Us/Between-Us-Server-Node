@@ -25,6 +25,13 @@ class ServerService {
         await serverToken.save();
         return serverToken;
     }
+
+    async validateServerToken(token: string) {
+        const tokenRecord = await ServerTokenModel.findOne({
+            Token: token,
+        });
+        return tokenRecord !== null;
+    }
 }
 
 export = { ServerService };

@@ -5,6 +5,7 @@ import express = require('express');
 const { BetweenUsRoutes, version, ServerApiRoutes } = require('./utils/routePaths');
 import healthRoute = require('./module/health/health');
 import serverRoutes = require('./module/server/server.routes');
+const { checkAdminHeader } = require('./middleware/headers.middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,7 +17,7 @@ app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
 
-app.use(BetweenUsRoutes.HealthCheck, healthRoute);
+app.use(BetweenUsRoutes.HealthCheck,checkAdminHeader, healthRoute);
 app.use(ServerApiRoutes.Token.ServerToken, serverRoutes);
 
 app.get('/', (req, res) => {
