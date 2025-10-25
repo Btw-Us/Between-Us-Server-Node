@@ -12,159 +12,43 @@ services:
       - /usr/src/app/node_modules
     command: npm run start:dev
     environment:
-      - NODE_ENV=development
-    # Memory optimization
-    mem_limit: ${APP_MEM_LIMIT:-512m}
-    mem_reservation: ${APP_MEM_RESERVATION:-256m}
-    memswap_limit: ${APP_MEMSWAP_LIMIT:-512m}
-    cpus: '${APP_CPUS:-1.0}'
-    restart: unless-stopped
+      - NODE_ENV=${NODE_ENV}
+      - DATABASE_URL=${DATABASE_URL}
+      - SERVER_DATABASE_URL=${SERVER_DATABASE_URL}
     depends_on:
-      mongo1:
-        condition: service_healthy
-      mongo2:
-        condition: service_healthy
-      mongo3:
-        condition: service_healthy
-      mongo-setup:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT}/health"]
-      timeout: 5s
-      retries: 3
-      interval: 30s
-      start_period: 60s
+      - mongo
     networks:
       - app-network
 
-  mongo1:
-    image: mongo:7.0
-    container_name: mongo_1
-    restart: unless-stopped
+  mongo:
+    image: mongo:latest
+    restart: always
     ports:
-      - "${MONGO1_PORT:-27017}:27017"
-    command: mongod --replSet ${MONGO_REPLICA_SET:-myReplicaSet} --bind_ip_all
+      - '${MONGO_PORT}:27017'
     volumes:
-      - mongo1_data:/data/db
-      - ./init-scripts/mongo:/docker-entrypoint-initdb.d
+      - ${MONGO_DATA_PATH:-mongo-data}:/data/db
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGO_DATABASE}
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      timeout: 20s
-      retries: 10
-      interval: 10s
-      start_period: 30s
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
     networks:
       - app-network
 
-  mongo2:
-    image: mongo:7.0
-    container_name: mongo_2
-    restart: unless-stopped
-    ports:
-      - "${MONGO2_PORT:-27018}:27017"
-    command: mongod --replSet ${MONGO_REPLICA_SET:-myReplicaSet} --bind_ip_all
-    volumes:
-      - mongo2_data:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      timeout: 20s
-      retries: 10
-      interval: 10s
-      start_period: 30s
-
-  mongo3:
-    image: mongo:7.0
-    container_name: mongo_3
-    restart: unless-stopped
-    ports:
-      - "${MONGO3_PORT:-27019}:27017"
-    command: mongod --replSet ${MONGO_REPLICA_SET:-myReplicaSet} --bind_ip_all
-    volumes:
-      - mongo3_data:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      timeout: 20s
-      retries: 10
-      interval: 10s
-      start_period: 30s
-
-  # Mongo Express for MongoDB management
   mongo-express:
     image: mongo-express:latest
-    container_name: mongo_express
-    restart: unless-stopped
+    restart: always
     ports:
-      - "${MONGO_EXPRESS_PORT:-8082}:8081"
+      - '${MONGO_EXPRESS_PORT}:8081'
     environment:
-      - ME_CONFIG_MONGODB_URL=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=${MONGO_REPLICA_SET:-myReplicaSet}&authSource=admin
-      - ME_CONFIG_BASICAUTH_USERNAME=${MONGO_EXPRESS_USERNAME:-admin}
-      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_EXPRESS_PASSWORD:-Admin@123}
-      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true
+      - ME_CONFIG_MONGODB_SERVER=${ME_CONFIG_MONGODB_SERVER}
+      - ME_CONFIG_MONGODB_PORT=${ME_CONFIG_MONGODB_PORT}
+      - ME_CONFIG_BASICAUTH_USERNAME=${ME_CONFIG_BASICAUTH_USERNAME}
+      - ME_CONFIG_BASICAUTH_PASSWORD=${ME_CONFIG_BASICAUTH_PASSWORD}
     depends_on:
-      mongo1:
-        condition: service_healthy
-      mongo-setup:
-        condition: service_completed_successfully
+      - mongo
     networks:
       - app-network
 
-  mongo-setup:
-    image: mongo:7.0
-    container_name: mongo_setup
-    restart: "no"
-    depends_on:
-      mongo1:
-        condition: service_healthy
-      mongo2:
-        condition: service_healthy
-      mongo3:
-        condition: service_healthy
-    environment:
-      - MONGO_REPLICA_SET=${MONGO_REPLICA_SET:-myReplicaSet}
-      - MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-    volumes:
-      - ./scripts:/scripts
-    command: /scripts/init-replica-set.sh
-    networks:
-      - app-network
-
-# Named volumes with custom paths using driver options
 volumes:
-  mongo1_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${MONGO1_DATA_PATH:-./data/mongo1_data}
-
-  mongo2_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${MONGO2_DATA_PATH:-./data/mongo2_data}
-
-  mongo3_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${MONGO3_DATA_PATH:-./data/mongo3_data}
+  mongo-data:
 
 networks:
   app-network:
