@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(BetweenUsRoutes.HealthCheck, checkAdminHeader, healthRoute);
 app.use(ServerApiRoutes.Token.ServerToken, validateServerTokenGeneration, serverRoutes);
-app.use(BetweenUsRoutes.Users.LogIn, checkAdminHeader, authRoutes);
+app.use(BetweenUsRoutes.Users.LogIn, authRoutes);
 
 
 app.get('/', (req, res) => {

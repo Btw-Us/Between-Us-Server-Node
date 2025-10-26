@@ -21,7 +21,7 @@ const userStatusSchema = new mangoose.Schema({
 });
 
 
-const userPassowrdSchema = new mangoose.Schema({
+const userPasswordSchema = new mangoose.Schema({
     passwordHash: {
         type: String,
         required: true
@@ -87,7 +87,7 @@ const userSchema = new mangoose.Schema({
         default: Date.now
     },
     userStatus: userStatusSchema,
-    userPassword: userPassowrdSchema,
+    userPassword: userPasswordSchema,
     userDevices: UserDeviceSchema
 });
 

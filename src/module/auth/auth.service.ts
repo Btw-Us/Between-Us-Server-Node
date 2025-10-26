@@ -1,6 +1,7 @@
 const { betweenUsDatabaseConnection } = require('../../config/database');
 const { UserModel } = require('../user/user.model');
 const { generateUuidFromSub } = require('../../utils/generateUuid');
+const { HashingManager } = require('../../cryptography/hashing/hashing');
 
 class AuthService {
     private dbConnection;
@@ -39,10 +40,15 @@ class AuthService {
 
 
     async getUserByEmail(email: string) {
-        const user = await UserModel
-            .findOne({ email: email })
+        return await UserModel
+            .findOne({email: email})
             .exec();
-        return user;
+    }
+
+    async getUserById(userId: string) {
+        return await UserModel
+            .findOne({uuid: userId})
+            .exec();
     }
 
     async updateUserDevice(
@@ -71,10 +77,13 @@ class AuthService {
         const user = await UserModel
             .findOne({ uuid: userId })
             .exec();
+
         if (!user) {
             return false;
         }
-        return user.username !== null && user.username !== '';
+
+        const { username, userPassword } = user;
+        return !!(username && userPassword?.passwordHash);
     }
 
 
@@ -100,7 +109,7 @@ class AuthService {
         deviceId: string,
         deviceName: string,
         profilePictureUrl?: string,
-    ) {
+    ): Promise<{ user: any; isProfileSetUpDone: boolean }> {
         let user = await this.getUserByEmail(email);
         if (user) {
             // User exists, update device info
@@ -112,7 +121,7 @@ class AuthService {
             if (!user) {
                 throw new Error('Failed to update user device information.');
             }
-            return { user, isNewUser: false };
+            return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
         } else {
             // User does not exist, create new user
             user = await this.createUser(
@@ -122,8 +131,57 @@ class AuthService {
                 deviceName,
                 profilePictureUrl
             );
-            return { user, isNewUser: true };
+            return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
         }
+    }
+
+    async completeUserProfile(
+        userId: string,
+        username: string,
+        password: string
+    ): Promise<{ user: any; isProfileSetUpDone: boolean }> {
+        const user = await UserModel
+            .findOne({ uuid: userId })
+            .exec();
+        if (!user) {
+            throw new Error('User not found.');
+        }
+        user.username = username;
+        // Here you would hash the password and store it securely
+        user.updatedAt = new Date();
+        const salt:string = await  HashingManager.generateSalt();
+        const hashedPassword: string = await HashingManager.hashPasswordWithSalt(password,salt);
+        user.userPassword = {
+            passwordHash:hashedPassword,
+            salt:salt,
+            lastPasswordChangeAt: new Date()
+        };
+        await user.save();
+        return { user, isProfileSetUpDone: true };
+    }
+
+
+    async logInWithEmailAndPassword(
+        uuid: string,
+        password: string,
+    ){
+        const user = await this.getUserById(uuid);
+        if (!user) {
+            throw new Error('User not found.');
+        }
+        if(!await this.isProfileComplete(uuid)){
+            throw new Error('Profile setup is not complete.');
+        }
+        const isPasswordValid: boolean = await HashingManager.verifyPasswordWithSalt(
+            password,
+            user.userPassword.salt,
+            user.userPassword.passwordHash
+        );
+        if (!isPasswordValid) {
+            throw new Error('Invalid password.');
+        }
+        await user.save();
+        return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
     }
 }
 export = { AuthService };

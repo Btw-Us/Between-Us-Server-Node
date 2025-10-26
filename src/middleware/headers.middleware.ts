@@ -60,7 +60,6 @@ async function validateServerTokenGeneration(req: e.Request, res: e.Response, ne
  * Extracts and validates custom headers from the request.
  * @param req - The Express request object.
  * @param res - The Express response object.
- * @param next - The next middleware function.
  * @returns An object containing the extracted header values or sends an error response.
  * objects values.
  * {
@@ -127,7 +126,7 @@ async function checkDeviceIntegrity(
             return;
         }
         const serverCheckService = new ServerCheckService();
-        const isValid = await serverCheckService.validateDeviceIntegrity(
+        const isValid = await serverCheckService.validateUserDevice(
             headers.UserId,
             headers.DeviceId,
         );
