@@ -61,7 +61,6 @@ const userSchema = new mangoose.Schema({
     },
     username: {
         type: String,
-        required: true,
         unique: true
     },
     email: {
@@ -79,10 +78,6 @@ const userSchema = new mangoose.Schema({
         required: false,
         nullable: true
     },
-    isProfileVerified: {
-        type: Boolean,
-        default: false
-    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -91,9 +86,9 @@ const userSchema = new mangoose.Schema({
         type: Date,
         default: Date.now
     },
-    userStatus: [userStatusSchema],
-    userPassword: [userPassowrdSchema],
-    userDevices: [UserDeviceSchema]
+    userStatus: userStatusSchema,
+    userPassword: userPassowrdSchema,
+    userDevices: UserDeviceSchema
 });
 
 const UserModel = mangoose.model('User', userSchema);

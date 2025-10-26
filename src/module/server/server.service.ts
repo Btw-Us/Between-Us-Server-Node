@@ -1,4 +1,4 @@
-const { serverDatabaseConnection } = require('../../config/serverDatabase');
+const { betweenUsDatabaseConnection } = require('../../config/database');
 const { ServerTokenModel } = require('./server.model');
 const { generateUuid } = require('../../utils/generateUuid');
 
@@ -6,7 +6,7 @@ const { generateUuid } = require('../../utils/generateUuid');
 class ServerService {
     private dbConnection;
     constructor() {
-        this.dbConnection = serverDatabaseConnection;
+        this.dbConnection = betweenUsDatabaseConnection;
     }
 
     async isConnected() {
