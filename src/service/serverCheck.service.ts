@@ -1,4 +1,4 @@
-const { serverDatabaseConnection } = require('../config/serverDatabase');
+const { databaseConnection } = require('../config/database');
 const { ServerTokenModel } = require('../module/server/server.model');
 const { UserModel } = require('../module/user/user.model');
 
@@ -6,7 +6,7 @@ const { UserModel } = require('../module/user/user.model');
 class ServerCheckService {
     private dbConnection;
     constructor() {
-        this.dbConnection = serverDatabaseConnection;
+        this.dbConnection = databaseConnection;
     }
     async isConnected() {
         return this.dbConnection.readyState === 1; // 1 means connected

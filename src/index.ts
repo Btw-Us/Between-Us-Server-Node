@@ -1,5 +1,4 @@
 require('./config/env')
-require('./config/serverDatabase');
 require('./config/database');
 import express = require('express');
 const { BetweenUsRoutes, version, ServerApiRoutes } = require('./utils/routePaths');
