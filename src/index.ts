@@ -6,7 +6,6 @@ const { BetweenUsRoutes, version, ServerApiRoutes } = require('./utils/routePath
 import healthRoute = require('./module/health/health');
 import serverRoutes = require('./module/server/server.routes');
 const { checkAdminHeader, validateServerTokenGeneration } = require('./middleware/headers.middleware');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
