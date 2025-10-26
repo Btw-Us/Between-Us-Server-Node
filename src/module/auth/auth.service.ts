@@ -26,16 +26,18 @@ class AuthService {
             email: email,
             fullName: fullName,
             profilePictureUrl: profilePictureUrl,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
             userDevices: {
                 deviceId,
                 deviceName,
-                lastLoginAt: new Date()
+                lastLoginAt: Date.now()
             }
         });
         await user.save();
-        return user;
+        return await UserModel.findById(user._id)
+            .select('-userPassword -userDevices')
+            .lean();
     }
 
 
@@ -65,11 +67,13 @@ class AuthService {
         user.userDevices = {
             deviceId,
             deviceName,
-            lastLoginAt: new Date()
+            lastLoginAt: Date.now()
         };
-        user.updatedAt = new Date();
+        user.updatedAt = Date.now();
         await user.save();
-        return user;
+        return await UserModel.findById(user._id)
+            .select('-userPassword -userDevices')
+            .lean();
     }
 
 
@@ -121,7 +125,10 @@ class AuthService {
             if (!user) {
                 throw new Error('Failed to update user device information.');
             }
-            return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
+            const filterUser = await UserModel.findById(user._id)
+                .select('-userPassword -userDevices')
+                .lean();
+            return { user:filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
         } else {
             // User does not exist, create new user
             user = await this.createUser(
@@ -131,7 +138,10 @@ class AuthService {
                 deviceName,
                 profilePictureUrl
             );
-            return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
+            const filterUser = await UserModel.findById(user._id)
+                .select('-userPassword -userDevices')
+                .lean();
+            return { user:filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
         }
     }
 
@@ -148,16 +158,19 @@ class AuthService {
         }
         user.username = username;
         // Here you would hash the password and store it securely
-        user.updatedAt = new Date();
+        user.updatedAt = Date.now();
         const salt:string = await  HashingManager.generateSalt();
         const hashedPassword: string = await HashingManager.hashPasswordWithSalt(password,salt);
         user.userPassword = {
             passwordHash:hashedPassword,
             salt:salt,
-            lastPasswordChangeAt: new Date()
+            lastPasswordChangeAt: Date.now()
         };
         await user.save();
-        return { user, isProfileSetUpDone: true };
+        const filterUser = await UserModel.findById(user._id)
+            .select('-userPassword -userDevices')
+            .lean();
+        return { user:filterUser, isProfileSetUpDone: true };
     }
 
 
@@ -181,7 +194,10 @@ class AuthService {
             throw new Error('Invalid password.');
         }
         await user.save();
-        return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
+        const filterUser = await UserModel.findById(user._id)
+            .select('-userPassword -userDevices')
+            .lean();
+        return { user:filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
     }
 }
 export = { AuthService };

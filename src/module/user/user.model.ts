@@ -61,7 +61,6 @@ const userSchema = new mangoose.Schema({
     },
     username: {
         type: String,
-        unique: true
     },
     email: {
         type: String,
@@ -79,12 +78,12 @@ const userSchema = new mangoose.Schema({
         nullable: true
     },
     createdAt: {
-        type: Date,
-        default: Date.now
+        type: Number,
+        default: Date.now()
     },
     updatedAt: {
-        type: Date,
-        default: Date.now
+        type: Number,
+        default: Date.now()
     },
     userStatus: userStatusSchema,
     userPassword: userPasswordSchema,

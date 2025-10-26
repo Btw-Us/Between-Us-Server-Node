@@ -5,9 +5,9 @@ const basePath = `/api/${version}`;
 const BetweenUsRoutes = {
     HealthCheck: `${basePath}/health`,
     Users: {
-        LogIn: `${basePath}/auth/users/login`,
+        LogIn: `${basePath}/auth/user/login`,
         UserDetails:{
-            GetUserDetails: `${basePath}/users/details`,
+            GetUserDetails: `${basePath}/user/details`,
         }
     },
 };

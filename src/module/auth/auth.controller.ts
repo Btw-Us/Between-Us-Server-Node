@@ -7,11 +7,12 @@ const { AuthService } = require('./auth.service');
 const longInOrRegisterUser = async (req: e.Request, res: e.Response) => {
     try {
         const { email, fullName, profilePictureUrl } = req.body;
-        const allHeaders = await getHeader(req, res);
-        if (!allHeaders) {
+        const deviceId = req.headers['x-device-id'];
+        if (!deviceId) {
+            res.status(400).json({ error: 'Bad Request: Missing X-Device-Id header' });
             return;
         }
-        const { DeviceId: deviceId, DeviceModel: devicemodel } = allHeaders;
+        const deviceModel = req.headers['x-device-model'] || 'Unknown Device';
         if(!email){
             res.status(400).json({ error: 'Bad Request: Missing email in request body' });
         }
@@ -24,14 +25,13 @@ const longInOrRegisterUser = async (req: e.Request, res: e.Response) => {
             email,
             fullName,
             deviceId,
-            devicemodel,
+            deviceModel,
             profilePictureUrl
         );
-        const { uuid } = user;
         if (isProfileSetUpDone) {
-            res.status(201).json({ uuid, isProfileSetUpDone: true });
+            res.status(201).json({ user, isProfileSetUpDone: true });
         } else {
-            res.status(200).json({ uuid, isProfileSetUpDone: false });
+            res.status(200).json({ user, isProfileSetUpDone: false });
         }
     } catch (error) {
         res.status(500).json({ error: `Internal error ${error}` });
