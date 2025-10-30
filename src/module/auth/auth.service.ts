@@ -1,17 +1,9 @@
-const { betweenUsDatabaseConnection } = require('../../config/database');
 const { UserModel } = require('../user/user.model');
 const { generateUuidFromSub } = require('../../utils/generateUuid');
 const { HashingManager } = require('../../cryptography/hashing/hashing');
 
 class AuthService {
-    private dbConnection;
-    constructor() {
-        this.dbConnection = betweenUsDatabaseConnection;
-    }
 
-    async isConnected() {
-        return this.dbConnection.readyState === 1; // 1 means connected
-    }
 
     async createUser(
         email: string,

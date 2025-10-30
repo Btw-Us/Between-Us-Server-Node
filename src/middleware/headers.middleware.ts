@@ -1,7 +1,7 @@
 import type e = require("express");
 
 const { ServerCheckService } = require('../service/serverCheck.service');
-
+const { createErrorMessage} = require('../utils/errorResponse');
 
 enum ClientType {
     WEB = 'WEB',
@@ -16,7 +16,13 @@ async function checkAdminHeader(req: e.Request, res: e.Response, next: e.NextFun
         const clientType = req.headers['x-client-type'];
         // check client type is present of not if not then set it to OTHER
         if (!clientType || clientType === ClientType.OTHER) {
-            res.status(400).json({ error: 'Bad Request: Missing or invalid X-Client-Type header' });
+            res.status(400).json(
+                createErrorMessage(
+                    'Bad Request',
+                    400,
+                    'Missing or invalid X-Client-Type header'
+                )
+            )
             return;
         }
         const apiKey = req.headers['authorization'];
@@ -25,13 +31,25 @@ async function checkAdminHeader(req: e.Request, res: e.Response, next: e.NextFun
         const baseURL = req.protocol + '://' + req.get('host');
         if (!isValid) {
             res.status(401)
-                .json({ error: `Unauthorized: Invalid or missing admin token.To generate one use ${baseURL}/api/v1/server/tokken/generate` });
+                .json(
+                    createErrorMessage(
+                        'Unauthorized',
+                        401,
+                        `Invalid or missing admin token. To generate one use ${baseURL}/api/v1/server/tokken/generate`
+                    )
+                )
             return;
         }
         next();
     }
     catch (error) {
-        res.status(500).json({ error: `Internal error ${error}` });
+        res.status(500).json(
+            createErrorMessage(
+                'Internal Server Error',
+                500,
+                `An error occurred while validating admin header: ${error}`
+            )
+        );
     }
 }
 
@@ -41,12 +59,25 @@ async function validateServerTokenGeneration(req: e.Request, res: e.Response, ne
         const clientType = req.headers['x-client-type'];
         // check client type is present of not if not then set it to OTHER
         if (!clientType || clientType === ClientType.OTHER) {
-            res.status(400).json({ error: 'Bad Request: Missing or invalid X-Client-Type header' });
+            res.status(400).json(
+                createErrorMessage(
+                    'Bad Request',
+                    400,
+                    'Missing or invalid X-Client-Type header'
+                )
+            )
+
             return;
         }
         const apiKey = req.headers['authorization'];
         if (apiKey !== process.env.SERVER_ADMIN_PASSWORD) {
-            res.status(401).json({ error: 'Unauthorized: Invalid or missing server admin password' });
+            res.status(401).json(
+                createErrorMessage(
+                    'Unauthorized',
+                    401,
+                    'Invalid or missing server admin password'
+                )
+            )
             return;
         }
         next();
@@ -78,22 +109,46 @@ async function getHeader(
     try {
         const apiKey = req.headers['authorization'];
         if (!apiKey) {
-            res.status(400).json({ error: 'Bad Request: Missing authorization header' });
+            res.status(400).json(
+                createErrorMessage(
+                    'Bad Request',
+                    400,
+                    'Missing authorization header'
+                )
+            )
             return;
         }
         const clientType = req.headers['x-client-type'];
         if (!clientType) {
-            res.status(400).json({ error: 'Bad Request: Missing X-Client-Type header' });
+            res.status(400).json(
+                createErrorMessage(
+                    'Bad Request',
+                    400,
+                    'Missing X-Client-Type header'
+                )
+            )
             return;
         }
         const userId = req.headers['x-user-id'];
         if (!userId) {
-            res.status(400).json({ error: 'Bad Request: Missing X-User-Id header' });
+            res.status(400).json(
+                createErrorMessage(
+                    'Bad Request',
+                    400,
+                    'Missing X-User-Id header'
+                )
+            )
             return;
         }
         const deviceId = req.headers['x-device-id'];
         if (!deviceId) {
-            res.status(400).json({ error: 'Bad Request: Missing X-Device-Id header' });
+            res.status(400).json(
+                createErrorMessage(
+                    'Bad Request',
+                    400,
+                    'Missing X-Device-Id header'
+                )
+            )
             return;
         }
         const rowDeviceModel = req.headers['x-device-model'];
@@ -131,7 +186,13 @@ async function checkDeviceIntegrity(
             headers.DeviceId,
         );
         if (!isValid) {
-            res.status(401).json({ error: 'Unauthorized: Device integrity check failed' });
+            res.status(401).json(
+                createErrorMessage(
+                    'Unauthorized',
+                    401,
+                    'Device integrity check failed'
+                )
+            )
             return;
         }
 
@@ -140,13 +201,25 @@ async function checkDeviceIntegrity(
             headers.DeviceId
         );
         if (!isValidDeviceId) {
-            res.status(401).json({ error: 'Unauthorized: Device not registered for user' });
+            res.status(401).json(
+                createErrorMessage(
+                    'Unauthorized',
+                    401,
+                    'Device not registered for user'
+                )
+            )
             return;
         }
         next();
 
     } catch (error) {
-        res.status(500).json({ error: `Internal error ${error}` });
+        res.status(500).json(
+            createErrorMessage(
+                'Internal Server Error',
+                500,
+                `An error occurred while checking device integrity: ${error}`
+            )
+        )
     }
 }
 
