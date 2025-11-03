@@ -25,8 +25,7 @@ class HashingManager {
         salt: string,
         storedHashedPassword: string
     ): Promise<boolean> {
-        const hashedInput = await bcrypt.hash(plainPassword, salt);
-        return hashedInput === storedHashedPassword;
+        return await bcrypt.compare(plainPassword, storedHashedPassword);
     }
 
     static async generateSalt(): Promise<string> {

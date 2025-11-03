@@ -8,10 +8,7 @@ async function connectToServerDatabase() {
         throw new Error('SERVER_DATABSE_URL is not defined in environment variables');
     }
     try {
-        await mongoose.connect(serverDbUrl, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(serverDbUrl);
     } catch (error) {
         console.error('Error connecting to the server database:', error);
         throw error;

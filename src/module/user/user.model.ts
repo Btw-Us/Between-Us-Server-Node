@@ -57,15 +57,18 @@ const userSchema = new mangoose.Schema({
     uuid: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     username: {
         type: String,
+        index: true
     },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     fullName: {
         type: String,
@@ -89,6 +92,9 @@ const userSchema = new mangoose.Schema({
     userPassword: userPasswordSchema,
     userDevices: UserDeviceSchema
 });
+
+// Add compound index for device validation queries
+userSchema.index({ uuid: 1, 'userDevices.deviceId': 1 });
 
 const UserModel = mangoose.model('User', userSchema);
 
