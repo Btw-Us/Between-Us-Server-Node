@@ -27,9 +27,11 @@ class AuthService {
             }
         });
         await user.save();
-        return await UserModel.findById(user._id)
-            .select('-userPassword -userDevices')
-            .lean();
+        return user.toObject({ versionKey: false, transform: (doc: any, ret: any) => {
+            delete ret.userPassword;
+            delete ret.userDevices;
+            return ret;
+        }});
     }
 
 
@@ -63,9 +65,11 @@ class AuthService {
         };
         user.updatedAt = Date.now();
         await user.save();
-        return await UserModel.findById(user._id)
-            .select('-userPassword -userDevices')
-            .lean();
+        return user.toObject({ versionKey: false, transform: (doc: any, ret: any) => {
+            delete ret.userPassword;
+            delete ret.userDevices;
+            return ret;
+        }});
     }
 
 
@@ -117,10 +121,7 @@ class AuthService {
             if (!user) {
                 throw new Error('Failed to update user device information.');
             }
-            const filterUser = await UserModel.findById(user._id)
-                .select('-userPassword -userDevices')
-                .lean();
-            return { user:filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
+            return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
         } else {
             // User does not exist, create new user
             user = await this.createUser(
@@ -130,10 +131,7 @@ class AuthService {
                 deviceName,
                 profilePictureUrl
             );
-            const filterUser = await UserModel.findById(user._id)
-                .select('-userPassword -userDevices')
-                .lean();
-            return { user:filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
+            return { user, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
         }
     }
 
@@ -159,10 +157,12 @@ class AuthService {
             lastPasswordChangeAt: Date.now()
         };
         await user.save();
-        const filterUser = await UserModel.findById(user._id)
-            .select('-userPassword -userDevices')
-            .lean();
-        return { user:filterUser, isProfileSetUpDone: true };
+        const filterUser = user.toObject({ versionKey: false, transform: (doc: any, ret: any) => {
+            delete ret.userPassword;
+            delete ret.userDevices;
+            return ret;
+        }});
+        return { user: filterUser, isProfileSetUpDone: true };
     }
 
 
@@ -185,11 +185,12 @@ class AuthService {
         if (!isPasswordValid) {
             throw new Error('Invalid password.');
         }
-        await user.save();
-        const filterUser = await UserModel.findById(user._id)
-            .select('-userPassword -userDevices')
-            .lean();
-        return { user:filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
+        const filterUser = user.toObject({ versionKey: false, transform: (doc: any, ret: any) => {
+            delete ret.userPassword;
+            delete ret.userDevices;
+            return ret;
+        }});
+        return { user: filterUser, isProfileSetUpDone: await this.isProfileComplete(user.uuid) };
     }
 }
 export = { AuthService };

@@ -190,21 +190,6 @@ async function checkDeviceIntegrity(
                 createErrorMessage(
                     'Unauthorized',
                     401,
-                    'Device integrity check failed'
-                )
-            )
-            return;
-        }
-
-        const isValidDeviceId = await serverCheckService.validateUserDevice(
-            headers.UserId,
-            headers.DeviceId
-        );
-        if (!isValidDeviceId) {
-            res.status(401).json(
-                createErrorMessage(
-                    'Unauthorized',
-                    401,
                     'Device not registered for user'
                 )
             )

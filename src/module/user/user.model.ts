@@ -1,4 +1,4 @@
-const mangoose = require('mongoose');
+const mongoose = require('mongoose');
 
 
 enum UserStatusType{
@@ -7,7 +7,7 @@ enum UserStatusType{
 }
 
 
-const userStatusSchema = new mangoose.Schema({
+const userStatusSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: Object.values(UserStatusType),
@@ -21,7 +21,7 @@ const userStatusSchema = new mangoose.Schema({
 });
 
 
-const userPasswordSchema = new mangoose.Schema({
+const userPasswordSchema = new mongoose.Schema({
     passwordHash: {
         type: String,
         required: true
@@ -37,7 +37,7 @@ const userPasswordSchema = new mangoose.Schema({
 })
 
 
-const UserDeviceSchema = new mangoose.Schema({
+const UserDeviceSchema = new mongoose.Schema({
     deviceId : {
         type: String,
         required: true
@@ -53,19 +53,22 @@ const UserDeviceSchema = new mangoose.Schema({
 });
 
 
-const userSchema = new mangoose.Schema({
+const userSchema = new mongoose.Schema({
     uuid: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     username: {
         type: String,
+        index: true
     },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     fullName: {
         type: String,
@@ -90,6 +93,9 @@ const userSchema = new mangoose.Schema({
     userDevices: UserDeviceSchema
 });
 
-const UserModel = mangoose.model('User', userSchema);
+// Add compound index for device validation queries
+userSchema.index({ uuid: 1, 'userDevices.deviceId': 1 });
+
+const UserModel = mongoose.model('User', userSchema);
 
 export = {UserModel, UserStatusType};
