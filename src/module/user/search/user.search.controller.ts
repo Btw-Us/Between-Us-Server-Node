@@ -1,9 +1,10 @@
 const {UserSearchService} = require('./user.search.service');
-const {createErrorMessage} = require('../../../utils/errorResponse');
+const createErrorMessage = require('../../../utils/errorResponse');
 
 const checkUserNameExists = async (req: any, res: any) => {
     try {
-        const { userName } = req.params;
+        // get the username from /:username param
+        const userName = req.params.username;
         if (!userName) {
             res.status(400).json(
                 createErrorMessage(
@@ -16,16 +17,17 @@ const checkUserNameExists = async (req: any, res: any) => {
         }
         const userSearchService = new UserSearchService();
         const exists = await userSearchService.checkUserNameExists(userName);
-        if(!exists){
-            res.status(409).json(
-                createErrorMessage(
-                    'Conflict',
-                    409,
-                    `The userName '${userName}' does not exist.`
-                )
-            );
-            return;
-        }
+
+        // if(!exists){
+        //     res.status(409).json(
+        //         createErrorMessage(
+        //             'Conflict',
+        //             409,
+        //             `The userName '${userName}' does not exist.`
+        //         )
+        //     );
+        //     return;
+        // }
         res.status(200).json({ exists });
     }
     catch (error) {

@@ -1,7 +1,7 @@
 import type e = require("express");
 
-const { ServerCheckService } = require('../service/serverCheck.service');
-const { createErrorMessage} = require('../utils/errorResponse');
+const {ServerCheckService} = require('../service/serverCheck.service');
+const createErrorMessage = require('../utils/errorResponse');
 
 enum ClientType {
     WEB = 'WEB',
@@ -41,8 +41,7 @@ async function checkAdminHeader(req: e.Request, res: e.Response, next: e.NextFun
             return;
         }
         next();
-    }
-    catch (error) {
+    } catch (error) {
         res.status(500).json(
             createErrorMessage(
                 'Internal Server Error',
@@ -81,13 +80,12 @@ async function validateServerTokenGeneration(req: e.Request, res: e.Response, ne
             return;
         }
         next();
-    }
-    catch (error) {
-        res.status(500).json({ error: `Internal error ${error}` });
+    } catch (error) {
+        res.status(500).json({error: `Internal error ${error}`});
     }
 }
 
-/** 
+/**
  * Extracts and validates custom headers from the request.
  * @param req - The Express request object.
  * @param res - The Express response object.
@@ -101,7 +99,7 @@ async function validateServerTokenGeneration(req: e.Request, res: e.Response, ne
  * DeviceModel: string,
  * ClientVersion: string
  * }
-*/
+ */
 async function getHeader(
     req: e.Request,
     res: e.Response,
@@ -156,18 +154,19 @@ async function getHeader(
 
         const rawClientVersion = req.headers['x-client-version'];
         const clientVersion = Array.isArray(rawClientVersion) ? rawClientVersion[0] : (rawClientVersion ?? '0.0.1');
-        return {
+        return ({
             APIKey: apiKey as string,
             ClientType: clientType as string,
             UserId: userId as string,
             DeviceId: deviceId as string,
             DeviceModel: deviceModel as string,
             ClientVersion: clientVersion as string
-        }
+        })
     } catch (error) {
         return null;
     }
 }
+
 
 
 async function checkDeviceIntegrity(
@@ -181,21 +180,19 @@ async function checkDeviceIntegrity(
             return;
         }
         const serverCheckService = new ServerCheckService();
-        const isValid = await serverCheckService.validateUserDevice(
-            headers.UserId,
-            headers.DeviceId,
+        const isClientApiKeyValid = await serverCheckService.validateServerToken(
+            headers.APIKey,
         );
-        if (!isValid) {
+        if (!isClientApiKeyValid) {
             res.status(401).json(
                 createErrorMessage(
                     'Unauthorized',
                     401,
-                    'Device integrity check failed'
+                    'Invalid API Key'
                 )
             )
             return;
         }
-
         const isValidDeviceId = await serverCheckService.validateUserDevice(
             headers.UserId,
             headers.DeviceId
@@ -223,4 +220,4 @@ async function checkDeviceIntegrity(
     }
 }
 
-export = { checkAdminHeader, validateServerTokenGeneration, getHeader, checkDeviceIntegrity };
+export = {checkAdminHeader, validateServerTokenGeneration, getHeader, checkDeviceIntegrity};

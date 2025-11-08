@@ -6,15 +6,13 @@ const BetweenUsRoutes = {
     HealthCheck: `${basePath}/health`,
     Users: {
         LogIn: `${basePath}/auth/user/login`,
-        UserDetails:{
-            GetUserDetails: `${basePath}/user/details`,
-        }
+        User:`${basePath}/user`,
     },
 };
 
 const ServerApiRoutes = {
     Token:{
-        ServerToken:`${basePath}/server/tokken`,
+        ServerToken:`${basePath}/server/token`,
     }
 };
 

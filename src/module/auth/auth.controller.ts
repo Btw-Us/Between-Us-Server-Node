@@ -1,7 +1,7 @@
 import type e = require("express");
 
 const {getHeader} = require("../../middleware/headers.middleware");
-const {createErrorMessage} = require('../../utils/errorResponse');
+const createErrorMessage = require('../../utils/errorResponse');
 
 const {AuthService} = require('./auth.service');
 
