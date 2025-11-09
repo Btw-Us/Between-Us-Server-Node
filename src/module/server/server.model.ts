@@ -17,7 +17,8 @@ const serverTokenSchema = new mongoose.Schema({
     Token: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        index: true
     },
     CreatedAt: {
         type: Date,
