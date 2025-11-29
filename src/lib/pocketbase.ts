@@ -2,8 +2,9 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 import { CollectionName } from "../utils/collectionName.js";
 
-const port = process.env.POCKETBASE_PORT || '3001';
-const url = `http://localhost:${port}`;
+
+const url = process.env.POCKETBASE_URL || "http://localhost:3001";
+
 export const pb = new PocketBase(url);
 
 
@@ -24,7 +25,7 @@ export async function authenticateAdminIfNeeded() {
     }
 }
 
-async function init() {
+export async function createAllAppCollections() {
     try {
         await authenticateAdminIfNeeded();
         const exists = await checkCollectionExists(CollectionName.ServerTokens);
@@ -43,11 +44,11 @@ async function init() {
 
 
     } catch (error) {
-        console.error("Error during PocketBase initialization:", error);
+        console.error("Error during PocketBase createAllAppCollectionsialization:", error);
     }
 }
 
-init();
+createAllAppCollections();
 
 
 function checkCollectionExists(collectionName: string): Promise<boolean> {
@@ -99,10 +100,10 @@ async function createServerDatabase() {
                 }
             ],
         });
-        console.log("PocketBase initialized with base:", base);
+        console.log("PocketBase createAllAppCollectionsialized with base:", base);
     } catch (error) {
-        console.error("Error initializing PocketBase:", error);
-        throw new Error(`Failed to initialize PocketBase: ${(error as Error).message || error}`);
+        console.error("Error createAllAppCollectionsializing PocketBase:", error);
+        throw new Error(`Failed to createAllAppCollectionsialize PocketBase: ${(error as Error).message || error}`);
     }
 }
 
@@ -171,7 +172,7 @@ async function createUserAuthCollection(): Promise<void> {
                     pattern: '',
                 },
                 {
-                    name: 'fullName',
+                    name: 'fullname',
                     type: 'text',
                     required: false,
                     max: 100,
