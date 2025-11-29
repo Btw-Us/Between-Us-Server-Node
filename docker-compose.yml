@@ -6,7 +6,8 @@ services:
     env_file:
       - .env
     depends_on:
-      - pocketbase
+      pocketbase:
+        condition: service_healthy # This ensures server waits until PB is fully ready
     restart: unless-stopped
 
   pocketbase:
@@ -15,15 +16,22 @@ services:
     ports:
       - "${POCKETBASE_PORT:-8090}:8090"
     volumes:
-      - /srv/dev-disk-by-uuid-218e2322-9f62-463e-95cf-f6df2c89850f/docker/betweenusServerData/pb_data:/pb_data
-    environment:
-      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
-      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
-    restart: unless-stopped
-    entrypoint: /bin/sh -c "
-      ./pocketbase serve --http=0.0.0.0:8090 &
-      PB_PID=$$!;
-      sleep 5;
-      ./pocketbase superuser upsert $${POCKETBASE_ADMIN_EMAIL} $${POCKETBASE_ADMIN_PASSWORD};
-      wait $$PB_PID
+      - ./pb_data:/pb_data
+    env_file:
+      - .env
+    # Override entrypoint to run upsert command first, then start the server
+    # We assume 'pocketbase' is in the PATH. If not, use /usr/local/bin/pocketbase
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Creating superuser...' &&
+      pocketbase superuser upsert ${POCKETBASE_ADMIN_EMAIL} ${POCKETBASE_ADMIN_PASSWORD} &&
+      echo 'Starting PocketBase server...' &&
+      pocketbase serve --http=0.0.0.0:8090
       "
+    # Healthcheck to verify PB is responding before starting the express server
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
