@@ -111,6 +111,11 @@ export class AuthService {
             });
         }
     }
+
+    async checkDeviceDetails(uid: string, deviceId: string): Promise<boolean> {
+        const deviceRecord = await pb.collection(CollectionName.DeviceDetails).getFirstListItem(`uid="${uid}" && deviceId="${deviceId}"`).catch(() => null);
+        return deviceRecord !== null;
+    }
 }
 
 export class UserExistsError extends Error {

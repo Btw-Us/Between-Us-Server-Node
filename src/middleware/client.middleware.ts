@@ -3,6 +3,7 @@ import { createErrorMessage } from '../utils/response.js';
 import 'dotenv/config';
 import { ServerService } from '../module/server/server.service.js';
 import { ClientType } from '../module/server/server.model.js';
+import { AuthService } from '../module/auth/auth.service.js';
 
 export async function clientMiddlewareBasic(req: express.Request, res: express.Response, next: express.NextFunction) {
     try {
@@ -68,6 +69,44 @@ export async function clientMiddlewareAllHeaders(req: express.Request, res: expr
             ));
         }
 
+        clientMiddlewareBasic(req, res, next);
+    } catch (error) {
+        res.status(500).json(createErrorMessage(
+            'Server Error',
+            500,
+            `An unexpected error occurred: ${(error as Error).message || error}`
+        ));
+    }
+}
+
+export async function clientDeviceRegistrationMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+    try {
+        const userId = req.headers['x-user-id'] as string;
+        if (!userId) {
+            return res.status(400).json(createErrorMessage(
+                'Bad Request',
+                400,
+                'Missing required header: x-user-id.'
+            ));
+        }
+        const deviceId = req.headers['x-device-id'] as string;
+        const deviceName = req.headers['x-device-name'] as string;
+        if (!deviceId || !deviceName) {
+            return res.status(400).json(createErrorMessage(
+                'Bad Request',
+                400,
+                'Missing required headers: x-device-id, x-device-name.'
+            ));
+        }
+        const server = new AuthService();
+        const isDeviceValid = await server.checkDeviceDetails(userId, deviceId);
+        if (!isDeviceValid) {
+            return res.status(401).json(createErrorMessage(
+                'Unauthorized',
+                401,
+                'Device is not registered.'
+            ));
+        }   
         clientMiddlewareBasic(req, res, next);
     } catch (error) {
         res.status(500).json(createErrorMessage(
