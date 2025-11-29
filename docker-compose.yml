@@ -15,8 +15,15 @@ services:
     ports:
       - "${POCKETBASE_PORT:-8090}:8090"
     volumes:
-      - ./pb_data:/pb_data
+      - /srv/dev-disk-by-uuid-218e2322-9f62-463e-95cf-f6df2c89850f/docker/betweenusServerData/pb_data:/pb_data
+    environment:
+      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
+      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
     restart: unless-stopped
-    # If you want to use the admin credentials from .env to create an admin account automatically,
-    # you might need to run a command or use a specific image that supports it.
-    # For now, we expose the port so you can access the UI.
+    entrypoint: /bin/sh -c "
+      ./pocketbase serve --http=0.0.0.0:8090 &
+      PB_PID=$$!;
+      sleep 5;
+      ./pocketbase superuser upsert $${POCKETBASE_ADMIN_EMAIL} $${POCKETBASE_ADMIN_PASSWORD};
+      wait $$PB_PID
+      "
