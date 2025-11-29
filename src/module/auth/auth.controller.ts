@@ -1,6 +1,6 @@
 import { AuthService } from "./auth.service.js";
 import { createErrorMessage } from "../../utils/response.js";
-import { UserExistsError , InvalidCredentialsError } from "./auth.service.js";
+import { UserExistsError , InvalidCredentialsError, UserAlreadyVerifiedError } from "./auth.service.js";
 import express from "express";
 const authService = new AuthService();
 
@@ -64,6 +64,35 @@ export async function signIn(req: express.Request, res: express.Response) {
             'Server Error',
             500,
             `Authentication failed: ${(error as Error).message || error}`
+        ));
+    }
+}
+
+
+export async function sendVerificationEmail(req: express.Request, res: express.Response) {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json(createErrorMessage(
+            'Bad Request',
+            400,
+            'Missing required field: email'
+        ));
+    }   
+    try {
+        const result = await authService.sendVerificationEmail(email);
+        res.status(200).json(result);
+    } catch (error) {
+        if (error instanceof UserAlreadyVerifiedError) {
+            return res.status(409).json(createErrorMessage(
+                'Conflict',
+                409,
+                error.message
+            ));
+        }
+        res.status(500).json(createErrorMessage(
+            'Server Error',
+            500,
+            `Failed to send verification email: ${(error as Error).message || error}`
         ));
     }
 }

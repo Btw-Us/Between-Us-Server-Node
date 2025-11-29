@@ -78,6 +78,20 @@ export class AuthService {
             verified: authData.record.verified
         };
     }
+
+    async sendVerificationEmail(email: string): Promise<{ IsSuccess: boolean }> {
+        const existingUsers = await pb.collection(CollectionName.Users).getFirstListItem(`email="${email}"`);
+        if (existingUsers.verified) {   
+            throw new UserAlreadyVerifiedError('User email is already verified');
+        }
+        try {
+            await pb.collection(CollectionName.Users).requestVerification(email);
+            return { IsSuccess: true };
+        }
+        catch (error) {
+            throw new Error(`Failed to send verification email: ${(error as Error).message || error}`);
+        }
+    }
 }
 
 export class UserExistsError extends Error {
@@ -92,4 +106,11 @@ export class InvalidCredentialsError extends Error {
         super(message);
         this.name = "InvalidCredentialsError";
     }
+}
+
+export class UserAlreadyVerifiedError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "UserAlreadyVerifiedError";
+    }   
 }
