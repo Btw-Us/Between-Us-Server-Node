@@ -1,6 +1,6 @@
 import { AuthService } from "./auth.service.js";
 import { createErrorMessage } from "../../utils/response.js";
-import { UserExistsError , InvalidCredentialsError, UserAlreadyVerifiedError } from "./auth.service.js";
+import { UserExistsError, InvalidCredentialsError, UserAlreadyVerifiedError } from "./auth.service.js";
 import express from "express";
 const authService = new AuthService();
 
@@ -23,8 +23,12 @@ export async function signUp(req: express.Request, res: express.Response) {
     }
     try {
         const result = await authService.signUp(email, password, passwordConfirm, username, fullname);
+        // get device name and device id from headers
+        const deviceId = req.headers['x-device-id'] as string;
+        const deviceName = req.headers['x-device-name'] as string;
+        await authService.registerDevice(result.user.uid, deviceId, deviceName);
         res.status(200).json(result);
-    }catch (error) {
+    } catch (error) {
         if (error instanceof UserExistsError) {
             return res.status(409).json(createErrorMessage(
                 'Conflict',
@@ -51,6 +55,11 @@ export async function signIn(req: express.Request, res: express.Response) {
     }
     try {
         const result = await authService.signIn(email, password);
+        // get device name and device id from headers
+        const deviceId = req.headers['x-device-id'] as string;
+        const deviceName = req.headers['x-device-name'] as string;
+        console.log(`Registering device for user ${result.user.uid}: ${deviceId} - ${deviceName}`);
+        await authService.registerDevice(result.user.uid, deviceId, deviceName);
         res.status(200).json(result);
     } catch (error) {
         if (error instanceof InvalidCredentialsError) {
@@ -77,7 +86,7 @@ export async function sendVerificationEmail(req: express.Request, res: express.R
             400,
             'Missing required field: email'
         ));
-    }   
+    }
     try {
         const result = await authService.sendVerificationEmail(email);
         res.status(200).json(result);

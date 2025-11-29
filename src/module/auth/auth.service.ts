@@ -81,7 +81,7 @@ export class AuthService {
 
     async sendVerificationEmail(email: string): Promise<{ IsSuccess: boolean }> {
         const existingUsers = await pb.collection(CollectionName.Users).getFirstListItem(`email="${email}"`);
-        if (existingUsers.verified) {   
+        if (existingUsers.verified) {
             throw new UserAlreadyVerifiedError('User email is already verified');
         }
         try {
@@ -90,6 +90,25 @@ export class AuthService {
         }
         catch (error) {
             throw new Error(`Failed to send verification email: ${(error as Error).message || error}`);
+        }
+    }
+
+    async registerDevice(uid: string, deviceId: string, deviceName: string): Promise<void> {
+        if (!uid || !deviceId || !deviceName) {
+            throw new Error('Invalid parameters for device registration');
+        }
+        const isExist = await pb.collection(CollectionName.DeviceDetails).getFirstListItem(`uid="${uid}"`).catch(() => null);
+        if (isExist) {
+            await pb.collection(CollectionName.DeviceDetails).update(isExist.id, {
+                deviceId,
+                deviceName
+            });
+        } else {
+            await pb.collection(CollectionName.DeviceDetails).create({
+                uid,
+                deviceId,
+                deviceName
+            });
         }
     }
 }
@@ -112,5 +131,5 @@ export class UserAlreadyVerifiedError extends Error {
     constructor(message: string) {
         super(message);
         this.name = "UserAlreadyVerifiedError";
-    }   
+    }
 }

@@ -328,7 +328,7 @@ async function createDeviceDetailsCollection(): Promise<void> {
         const deviceCollection = await pb.collections.create({
             name: collectionName,
             type: 'base',
-            listRule: null,
+            listRule: '@request.auth.uid != ""',
             viewRule: '@request.auth.uid != ""',
             createRule: '@request.auth.uid != ""',
             updateRule: '@request.auth.uid != ""',
@@ -361,7 +361,7 @@ async function createDeviceDetailsCollection(): Promise<void> {
                     system: false,
                 },
                 {
-                    name: 'uuid',
+                    name: 'uid',
                     type: 'text',
                     required: true,
                     max: 36,
@@ -406,8 +406,8 @@ async function createDeviceDetailsCollection(): Promise<void> {
             ],
             indexes: [
                 `CREATE UNIQUE INDEX idx_nbFzBiXXVC ON ${collectionName} (deviceId)`,
-                `CREATE UNIQUE INDEX idx_ahd9NSmWZR ON ${collectionName} (uuid)`,
-                `CREATE UNIQUE INDEX idx_zpzHlKXFF8 ON ${collectionName} (deviceId, uuid)`
+                `CREATE UNIQUE INDEX idx_ahd9NSmWZR ON ${collectionName} (uid)`,
+                `CREATE UNIQUE INDEX idx_zpzHlKXFF8 ON ${collectionName} (deviceId, uid)`
             ],
             system: false,
         });
