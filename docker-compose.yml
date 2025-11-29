@@ -16,7 +16,7 @@ services:
       
       # PocketBase Configuration
       - POCKETBASE_PORT=${POCKETBASE_PORT:-8090}
-      - POCKETBASE_URL=${POCKETBASE_URL:-http://127.0.0.1:${POCKETBASE_PORT:-8090}}
+      - POCKETBASE_URL=${POCKETBASE_URL:-http://127.0.0.1:8090}
       
       # Node.js Server Configuration
       - PORT=${PORT:-3000}

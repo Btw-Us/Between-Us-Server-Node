@@ -65,9 +65,9 @@ ENV NODE_ENV=production
 # Supervisor configuration to run both PocketBase and Node.js
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Expose ports
-# 3000 - Node.js Express server
-# 8090 - PocketBase Admin UI and API
+# Expose ports (defaults - actual ports are determined by environment variables at runtime)
+# 3000 - Node.js Express server (configurable via PORT env var)
+# 8090 - PocketBase Admin UI and API (configurable via POCKETBASE_PORT env var)
 EXPOSE 3000 8090
 
 # Health check (wget is installed via apk above)
