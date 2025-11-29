@@ -65,7 +65,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # 8090 - PocketBase Admin UI and API
 EXPOSE 3000 8090
 
-# Health check
+# Health check (wget is installed via apk above)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1
 
