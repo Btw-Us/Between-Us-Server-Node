@@ -108,7 +108,7 @@ async function createServerDatabase() {
 
 async function createUserAuthCollection(): Promise<void> {
     try {
-        const collectionName = CollectionName.User; // or "users"
+        const collectionName = CollectionName.Users; // or "users"
 
         // Check if collection already exists
         const exists = await checkCollectionExists(collectionName);
