@@ -42,6 +42,12 @@ export async function createAllAppCollections() {
             await createDeviceDetailsCollection();
         }
 
+        const userCollectionExists = await checkCollectionExists("users");
+        if (userCollectionExists) {
+            await pb.collections.delete("users");
+            console.log('Deleted default "users" collection to avoid conflicts.');
+        }
+
 
     } catch (error) {
         console.error("Error during PocketBase createAllAppCollectionsialization:", error);
