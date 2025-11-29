@@ -11,7 +11,7 @@ const BetweenUsRoutes = {
 
 const ServerApiRoutes = {
     Token:{
-        GenerateServerToken:`${basePath}/server/token/generate`,
+        GenerateServerToken:`${basePath}/server/token`,
     }
 };
 
