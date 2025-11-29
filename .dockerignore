@@ -1,0 +1,50 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment files (should be set via Docker/compose)
+.env
+.env.local
+.env.*.local
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Documentation
+README.md
+LICENSE
+CHANGELOG.md
+docs/
+
+# Docker (avoid recursive copy)
+Dockerfile
+docker-compose.yml
+docker-compose*.yml
+.dockerignore
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.md
+!README.md

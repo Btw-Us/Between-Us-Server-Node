@@ -1,0 +1,22 @@
+services:
+  server:
+    build: .
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - .env
+    depends_on:
+      - pocketbase
+    restart: unless-stopped
+
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: pocketbase
+    ports:
+      - "${POCKETBASE_PORT:-8090}:8090"
+    volumes:
+      - ./pb_data:/pb_data
+    restart: unless-stopped
+    # If you want to use the admin credentials from .env to create an admin account automatically,
+    # you might need to run a command or use a specific image that supports it.
+    # For now, we expose the port so you can access the UI.

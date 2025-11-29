@@ -2,7 +2,8 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 import { CollectionName } from "../utils/collectionName.js";
 
-const url = process.env.POCKETBASE_URL || 'http://localhost:3001';
+const port = process.env.POCKETBASE_PORT || '3001';
+const url = `http://localhost:${port}`;
 export const pb = new PocketBase(url);
 
 
@@ -162,12 +163,12 @@ async function createUserAuthCollection(): Promise<void> {
                     onUpdate: true,
                 },
                 {
-                    name:'username',
-                    type:'text',
-                    required:false,
-                    max:10,
-                    min:0,
-                    pattern:'',
+                    name: 'username',
+                    type: 'text',
+                    required: false,
+                    max: 10,
+                    min: 0,
+                    pattern: '',
                 },
                 {
                     name: 'fullName',
