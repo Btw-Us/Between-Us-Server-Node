@@ -1,6 +1,6 @@
 import { GeneratedFrom } from './server.model.js';
 import { CollectionName } from '../../utils/collectionName.js';
-import { pb } from '../../lib/pocketbase.js';
+import { pb, authenticateAdminIfNeeded } from '../../lib/pocketbase.js';
 
 export class ServerService {
     async createServerToken(generatedFrom: GeneratedFrom, expiresAt?: string) {
@@ -15,6 +15,19 @@ export class ServerService {
         } catch (error) {
             console.error('PocketBase create error:', error);
             throw new Error(`Failed to create server token: ${(error as Error).message || error}`);
+        }
+    }
+    async checkIsValidServerToken(token: string): Promise<boolean> {
+        try {
+            await authenticateAdminIfNeeded();
+            const records = await pb.collection(CollectionName.ServerTokens).getFullList({
+                filter: `token="${token}"`,
+                limit: 1
+            });
+            return records.length > 0;
+        } catch (error) {
+            console.error('PocketBase query error:', error);
+            throw new Error(`Failed to validate server token: ${(error as Error).message || error}`);
         }
     }
 }

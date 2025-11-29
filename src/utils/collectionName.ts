@@ -1,3 +1,5 @@
 export enum CollectionName{
-    ServerTokens = "ServerTokens"
+    ServerTokens = "ServerTokens",
+    User = "Users",
+    DeviceDetails = "UserDeviceDetails"
 }

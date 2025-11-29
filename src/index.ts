@@ -1,14 +1,17 @@
 import express from 'express';
 import 'dotenv/config';
-import { ServerApiRoutes, version } from './utils/routePaths.js';
+import { BetweenUsRoutes,ServerApiRoutes, version } from './utils/routePaths.js';
 import { serverMiddleware } from "./middleware/server.middleware.js";
+import { clientMiddlewareBasic } from "./middleware/client.middleware.js";
 import ServerRoutes from './module/server/server.routes.js';
+import HealthRoutes from './module/health/health.routes.js';
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(ServerApiRoutes.Token.GenerateServerToken, serverMiddleware, ServerRoutes)
+app.use(BetweenUsRoutes.HealthCheck, clientMiddlewareBasic,HealthRoutes);
 
 app.get('/', (req, res) => {
     res.send(`
