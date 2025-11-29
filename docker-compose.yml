@@ -1,38 +1,22 @@
 services:
-  betweenusserver:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  server:
+    build: .
     ports:
-      - "${PORT:-3000}:${PORT:-3000}"              # Node.js Express API
-      - "${POCKETBASE_PORT:-8090}:${POCKETBASE_PORT:-8090}"  # PocketBase Admin UI
+      - "${PORT:-3000}:${PORT:-3000}"
     env_file:
-      - path: .env
-        required: false
-    environment:
-      # PocketBase Admin Credentials (REQUIRED - change in production!)
-      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL:-admin@example.com}
-      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD:-securepassword123}
-      
-      # PocketBase Configuration
-      - POCKETBASE_PORT=${POCKETBASE_PORT:-8090}
-      - POCKETBASE_URL=${POCKETBASE_URL:-http://127.0.0.1:8090}
-      
-      # Node.js Server Configuration
-      - PORT=${PORT:-3000}
-      - SERVER_JWT_SECRET=${SERVER_JWT_SECRET:-your_jwt_secret_key}
-      - NODE_ENV=${NODE_ENV:-production}
-    volumes:
-      # Persist PocketBase data
-      - pocketbase_data:/pb/pb_data
+      - .env
+    depends_on:
+      - pocketbase
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
 
-volumes:
-  pocketbase_data:
-    driver: local
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: pocketbase
+    ports:
+      - "${POCKETBASE_PORT:-8090}:8090"
+    volumes:
+      - ./pb_data:/pb_data
+    restart: unless-stopped
+    # If you want to use the admin credentials from .env to create an admin account automatically,
+    # you might need to run a command or use a specific image that supports it.
+    # For now, we expose the port so you can access the UI.
