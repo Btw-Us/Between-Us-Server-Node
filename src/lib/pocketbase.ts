@@ -30,7 +30,7 @@ async function init() {
         if (!exists) {
             await createServerDatabase();
         }
-        const userDbExists = await checkCollectionExists(CollectionName.User);
+        const userDbExists = await checkCollectionExists(CollectionName.Users);
         if (!userDbExists) {
             await createUserAuthCollection();
         }
@@ -40,7 +40,7 @@ async function init() {
             await createDeviceDetailsCollection();
         }
 
-        
+
     } catch (error) {
         console.error("Error during PocketBase initialization:", error);
     }
@@ -63,7 +63,7 @@ function checkCollectionExists(collectionName: string): Promise<boolean> {
 
 async function createServerDatabase() {
     try {
-       
+
         const base = await pb.collections.create({
             name: CollectionName.ServerTokens,
             type: 'base',
@@ -123,7 +123,7 @@ async function createUserAuthCollection(): Promise<void> {
             type: 'auth',
             listRule: '@request.auth.uid != ""',
             viewRule: '@request.auth.uid != ""',
-            createRule: '@request.auth.uid != ""',
+            createRule: '',
             updateRule: '@request.auth.uid != ""',
             deleteRule: null,
             fields: [
@@ -160,6 +160,22 @@ async function createUserAuthCollection(): Promise<void> {
                     system: false,
                     onCreate: true,
                     onUpdate: true,
+                },
+                {
+                    name:'username',
+                    type:'text',
+                    required:false,
+                    max:10,
+                    min:0,
+                    pattern:'',
+                },
+                {
+                    name: 'fullName',
+                    type: 'text',
+                    required: false,
+                    max: 100,
+                    min: 0,
+                    pattern: '',
                 }
                 // PocketBase auto-creates system auth fields: id, password, tokenKey, email, 
                 // emailVisibility, verified with exact specs from your JSON
@@ -168,7 +184,8 @@ async function createUserAuthCollection(): Promise<void> {
                 `CREATE UNIQUE INDEX idx_tokenKey_c9nw1nmuhs ON ${collectionName} (tokenKey)`,
                 `CREATE UNIQUE INDEX idx_email_c9nw1nmuhs ON ${collectionName} (email) WHERE email != ''`,
                 `CREATE UNIQUE INDEX idx_MkNFR46IPG ON ${collectionName} (uid)`,
-                `CREATE INDEX idx_3eKKoBSr7w ON ${collectionName} (password, email)`
+                `CREATE INDEX idx_3eKKoBSr7w ON ${collectionName} (password, email)`,
+                `CREATE INDEX idx_7fXKLoBSr8 ON ${collectionName} (username)`,
             ],
             system: false,
             // Auth configurations
@@ -281,7 +298,7 @@ async function createUserAuthCollection(): Promise<void> {
         console.log(`✅ User auth collection "${collectionName}" created successfully:`, userCollection);
     } catch (error) {
         if ((error as any)?.status === 409) {
-            console.log(`Collection "${CollectionName.User}" already exists (409).`);
+            console.log(`Collection "${CollectionName.Users}" already exists (409).`);
             return;
         }
         console.error("❌ Failed to create User auth collection:", error);
@@ -292,7 +309,7 @@ async function createUserAuthCollection(): Promise<void> {
 
 async function createDeviceDetailsCollection(): Promise<void> {
     try {
-        const collectionName = CollectionName.DeviceDetails; 
+        const collectionName = CollectionName.DeviceDetails;
         const exists = await checkCollectionExists(collectionName);
         if (exists) {
             console.log(`Collection "${collectionName}" already exists, skipping creation.`);
