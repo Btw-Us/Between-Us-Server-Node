@@ -32,6 +32,7 @@ Create a `.env` file based on `.env.example`:
 ```env
 # PocketBase Configuration
 POCKETBASE_URL=http://localhost:8090
+POCKETBASE_PORT=8090
 POCKETBASE_ADMIN_EMAIL=admin@example.com
 POCKETBASE_ADMIN_PASSWORD=your_secure_password
 
@@ -45,6 +46,7 @@ SERVER_JWT_SECRET=your_jwt_secret_key
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `POCKETBASE_URL` | URL where PocketBase is running | `http://localhost:8090` |
+| `POCKETBASE_PORT` | Port for PocketBase server | `8090` |
 | `POCKETBASE_ADMIN_EMAIL` | Admin email for PocketBase authentication | Required |
 | `POCKETBASE_ADMIN_PASSWORD` | Admin password for PocketBase authentication | Required |
 | `PORT` | Port for the Express server | `3000` |

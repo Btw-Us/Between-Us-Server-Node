@@ -47,9 +47,14 @@ COPY --from=builder /app/dist ./dist
 # Create directories for PocketBase data
 RUN mkdir -p /pb/pb_data /pb/pb_migrations
 
+# Copy startup scripts
+COPY scripts/start-pocketbase.sh /usr/local/bin/start-pocketbase.sh
+RUN chmod +x /usr/local/bin/start-pocketbase.sh
+
 # Environment variables
 # PocketBase configuration (should be overridden at runtime)
 ENV POCKETBASE_URL=http://127.0.0.1:8090
+ENV POCKETBASE_PORT=8090
 ENV POCKETBASE_ADMIN_EMAIL=admin@example.com
 ENV POCKETBASE_ADMIN_PASSWORD=securepassword123
 
