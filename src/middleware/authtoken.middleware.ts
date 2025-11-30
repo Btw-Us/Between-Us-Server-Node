@@ -1,5 +1,6 @@
 import { pb } from "../lib/pocketbase.js";
 import { CollectionName } from "../utils/collectionName.js";
+import { clientDeviceRegistrationMiddleware } from "./client.middleware.js";
 
 declare global {
     namespace Express {
@@ -32,7 +33,8 @@ export async function authTokenMiddleware(req: any, res: any, next: any) {
         req.user = authData.record;
         req.pbToken = authData.token; // use refreshed token, not old one
 
-        return next();
+        // Proceed to next middleware
+        clientDeviceRegistrationMiddleware(req, res, next);
     } catch (error) {
         return res.status(401).json({ message: 'Invalid or expired auth token', error });
     }
