@@ -293,7 +293,7 @@ export async function setupRelations() {
                     name: 'friendslist',
                     type: 'relation',
                     collectionId: friendsListCollection.id,
-                    maxSelect: 999,
+                    maxSelect: 10000000000000000,
                     cascadeDelete: false,
                     required: false,
                     system: false
@@ -302,7 +302,7 @@ export async function setupRelations() {
                     name: 'friendsrequestlist',
                     type: 'relation',
                     collectionId: friendRequestCollection.id,
-                    maxSelect: 999,
+                    maxSelect: 10000000000000000,
                     cascadeDelete: false,
                     required: false,
                     system: false
