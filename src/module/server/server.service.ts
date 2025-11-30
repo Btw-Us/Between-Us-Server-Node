@@ -1,11 +1,8 @@
 import { GeneratedFrom } from './server.model.js';
 import { CollectionName } from '../../utils/collectionName.js';
 import { pb, authenticateAdminIfNeeded } from '../../lib/pocketbase.js';
-import { createAllAppCollections } from '../../lib/pocketbase.js';
+
 export class ServerService {
-    constructor() {
-        createAllAppCollections();
-    }
     async createServerToken(generatedFrom: GeneratedFrom, expiresAt?: string) {
         const tokenData = {
             token: crypto.randomUUID(),
