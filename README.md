@@ -293,37 +293,6 @@ The application automatically creates the following PocketBase collections on st
 4. Push to the branch: `git push origin feature/my-feature`
 5. Submit a pull request
 
-## Project Roadmap
-
-### User Device Registration
-Track user devices for push notifications, multi-device session management, and security features.
-
-- [ ] **#3** User Device Registration - Implement the device module for user device management
-- [ ] **#4** Design Device Schema - Define data model for devices (deviceId, deviceToken, platform, lastActive)
-- [ ] **#5** Create Controller - Implement registerDevice and removeDevice functions
-- [ ] **#6** Setup Routes - Add device routes (POST /api/v1/device/register)
-- [ ] **#7** Integration - Update Auth module to register device during signIn/signUp
-- [ ] **#19** Migrate Db Creation Part - Move database creation to separate script file
-
-### User Status System
-Real-time user presence tracking and broadcasting (Online, Offline, Away, Typing).
-
-- [ ] **#8** User Status System - Develop logic to track and broadcast user presence
-- [ ] **#9** WebSocket Setup - Initialize WebSocket server alongside Express app
-- [ ] **#10** Status Store - Decide storage for ephemeral status (Memory, Redis, or PocketBase)
-- [ ] **#11** Presence Events - Implement user_connected, user_disconnected, and status_change events
-- [ ] **#12** API Endpoints - Create endpoints to fetch user status
-
-### Chat Features & Messaging
-Core communication layer for exchanging messages.
-
-- [ ] **#13** Chat Features & Messaging - Implement foundational chat/message structure
-- [ ] **#14** Module Init - Create src/module/chat directory
-- [ ] **#15** Data Models - Define Message and Conversation schemas
-- [ ] **#16** Send Message API - Implement POST /api/v1/chat/send
-- [ ] **#17** Get History API - Implement GET /api/v1/chat/:conversationId with pagination
-- [ ] **#18** Real-time Delivery - Emit new_message events via WebSocket
-
 ## License
 
 This project is licensed under the ISC License.
