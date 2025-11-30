@@ -97,18 +97,43 @@ export class AuthService {
         if (!uid || !deviceId || !deviceName) {
             throw new Error('Invalid parameters for device registration');
         }
-        const isExist = await pb.collection(CollectionName.DeviceDetails).getFirstListItem(`uid="${uid}"`).catch(() => null);
-        if (isExist) {
-            await pb.collection(CollectionName.DeviceDetails).update(isExist.id, {
+
+        try {
+            // 1. Find the user by uid
+            const user = await pb.collection(CollectionName.Users).getFirstListItem(
+                `uid="${uid}"`
+            );
+
+            // 2. Check if device already exists in the relation
+            const existingDeviceId = user.devicedetails
+            if (!existingDeviceId || existingDeviceId.length === 0) {
+                // 1. Create device record first
+                const newDevice = await pb.collection(CollectionName.DeviceDetails).create({
+                    uid, // This links it logically, even though relation is inverse
+                    deviceId,
+                    deviceName,
+                    lastLoginAt: new Date().toISOString()
+                });
+
+                // 2. Update USER record to add the relation
+                await pb.collection(CollectionName.Users).update(user.id, {
+                    devicedetails: [newDevice.id] // Add device to relation field
+                });
+
+                console.log(`✅ New device registered for user ${uid}: ${deviceId}`);
+                return;
+            }
+            // Update existing device record via relation
+            await pb.collection(CollectionName.DeviceDetails).update((existingDeviceId as string), {
                 deviceId,
-                deviceName
+                deviceName,
+                lastLoginAt: new Date().toISOString()
             });
-        } else {
-            await pb.collection(CollectionName.DeviceDetails).create({
-                uid,
-                deviceId,
-                deviceName
-            });
+            console.log(`✅ Device updated for user ${uid}: ${deviceId}`);
+
+        } catch (error) {
+            console.error('❌ Device registration failed:', error);
+            throw new Error(`Device registration failed: ${(error as Error).message}`);
         }
     }
 

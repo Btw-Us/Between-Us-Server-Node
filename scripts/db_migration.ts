@@ -151,15 +151,15 @@ async function createDeviceDetailsCollection() {
         fields: [
             { name: 'deviceId', type: 'text', required: true, max: 36 },
             { name: 'deviceName', type: 'text', required: true },
-            { name: 'uuid', type: 'text', required: true, max: 36 },
+            { name: 'uid', type: 'text', required: true, max: 36 },
             { name: 'created', type: 'autodate', onCreate: true },
             { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
             { name: 'lastLoginAt', type: 'date' } // Changed from autodate to date for manual control if needed
         ],
         indexes: [
             `CREATE UNIQUE INDEX idx_deviceId ON ${collectionName} (deviceId)`,
-            `CREATE UNIQUE INDEX idx_uuid ON ${collectionName} (uuid)`,
-            `CREATE UNIQUE INDEX idx_deviceId_uuid ON ${collectionName} (deviceId, uuid)`
+            `CREATE UNIQUE INDEX idx_deviceName ON ${collectionName} (deviceName)`,
+            `CREATE UNIQUE INDEX idx_uid_deviceId ON ${collectionName} (uid, deviceId)`
         ],
         system: false
     });
