@@ -19,8 +19,6 @@ services:
       - ./pb_data:/pb_data
     env_file:
       - .env
-    # Override entrypoint to run upsert command first, then start the server
-    # We assume 'pocketbase' is in the PATH. If not, use /usr/local/bin/pocketbase
     entrypoint: >
       /bin/sh -c "
       echo 'Creating superuser...' &&
@@ -28,7 +26,6 @@ services:
       echo 'Starting PocketBase server...' &&
       pocketbase serve --http=0.0.0.0:8090
       "
-    # Healthcheck to verify PB is responding before starting the express server
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
       interval: 5s

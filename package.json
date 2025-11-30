@@ -8,7 +8,7 @@
     "start": "node ./dist/index.js",
     "start:dev": "nodemon ./src/index.ts",
     "build": "tsc",
-    "db:migrate": "tsx scripts/db_migration.ts"
+    "db:migrate": "tsx ./src/scripts/db_migration.ts"
   },
   "keywords": [],
   "author": "",

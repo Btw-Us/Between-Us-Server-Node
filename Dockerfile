@@ -19,5 +19,5 @@ RUN npm run build
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application with migration
+CMD ["sh", "-c", "npm run db:migrate && npm start"]
