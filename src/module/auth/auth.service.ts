@@ -1,5 +1,5 @@
 // import { CreateUserModel } from "../../module/user/user.model.js";
-import { pb } from "../../lib/pocketbase.js";
+import { pb, authenticateAdminIfNeeded } from "../../lib/pocketbase.js";
 import { generateUuidFromSub } from "../../utils/generateUuid.js";
 import { CollectionName } from "../../utils/collectionName.js";
 
@@ -8,6 +8,7 @@ export class AuthService {
      * Sign in user with email and password
      */
     async signIn(email: string, password: string): Promise<{
+        token: string;
         user: any;
         verified: boolean;
     }> {
@@ -21,6 +22,7 @@ export class AuthService {
         try {
             const authData = await pb.collection(CollectionName.Users).authWithPassword(email, password);
             return {
+                token: authData.token,
                 user: authData.record,
                 verified: authData.record.verified
             };
@@ -38,8 +40,11 @@ export class AuthService {
         password: string,
         passwordConfirm: string,
         username: string,
-        fullname: string
+        fullname: string,
+        deviceId: string,
+        deviceName: string
     ): Promise<{
+        token: string;
         user: any;
         newUser: true;
         verified: boolean;
@@ -49,6 +54,13 @@ export class AuthService {
             filter: `email="${email}"`,
             limit: 1
         });
+
+        // // check if user have device details
+        // const user : any = existingUsers[0];
+        // if (!user.devicedetails || user.devicedetails.length === 0) {
+        //     throw new DeviceNotRegisteredError('User must register device details before signing up');
+        // }
+
         if (existingUsers.length > 0) {
             throw new UserExistsError('User with this email already exists');
         }
@@ -71,8 +83,17 @@ export class AuthService {
 
         await pb.collection(CollectionName.Users).create(userData);
         const authData = await pb.collection(CollectionName.Users).authWithPassword(email, password);
-
+        // add device details to user
+        try {
+            await this.registerDevice(authData.record.uid, deviceId, deviceName);
+        } catch (error) {
+            console.error('❌ Device registration during signUp failed:', error);
+            // Delete the created user to maintain data integrity
+            await this.deleteUserOnError(authData.record.uid);
+            throw new DeviceNotRegisteredError(`Device registration during signUp failed: ${(error as Error).message}`);
+        }
         return {
+            token: authData.token,
             user: authData.record,
             newUser: true,
             verified: authData.record.verified
@@ -103,8 +124,6 @@ export class AuthService {
             const user = await pb.collection(CollectionName.Users).getFirstListItem(
                 `uid="${uid}"`
             );
-
-            // 2. Check if device already exists in the relation
             const existingDeviceId = user.devicedetails
             if (!existingDeviceId || existingDeviceId.length === 0) {
                 // 1. Create device record first
@@ -141,6 +160,21 @@ export class AuthService {
         const deviceRecord = await pb.collection(CollectionName.DeviceDetails).getFirstListItem(`uid="${uid}" && deviceId="${deviceId}"`).catch(() => null);
         return deviceRecord !== null;
     }
+
+    async deleteUserOnError(uid: string): Promise<void> {
+        try {
+            const adminAuthenticated = await authenticateAdminIfNeeded();
+            if (!adminAuthenticated) {
+                console.error('❌ Admin authentication required to delete user.');
+                return;
+            }
+            const user = await pb.collection(CollectionName.Users).getFirstListItem(`uid="${uid}"`);
+            await pb.collection(CollectionName.Users).delete(user.id);
+            console.log(`✅ Deleted user with uid ${uid} due to error during registration.`);
+        } catch (error) {
+            console.error(`❌ Failed to delete user with uid ${uid}:`, error);
+        }
+    }
 }
 
 export class UserExistsError extends Error {
@@ -161,5 +195,12 @@ export class UserAlreadyVerifiedError extends Error {
     constructor(message: string) {
         super(message);
         this.name = "UserAlreadyVerifiedError";
+    }
+}
+
+export class DeviceNotRegisteredError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "DeviceNotRegisteredError";
     }
 }

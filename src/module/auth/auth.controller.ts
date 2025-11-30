@@ -1,4 +1,4 @@
-import { AuthService } from "./auth.service.js";
+import { AuthService, DeviceNotRegisteredError } from "./auth.service.js";
 import { createErrorMessage } from "../../utils/response.js";
 import { UserExistsError, InvalidCredentialsError, UserAlreadyVerifiedError } from "./auth.service.js";
 import express from "express";
@@ -21,18 +21,24 @@ export async function signUp(req: express.Request, res: express.Response) {
             'Password and passwordConfirm do not match.'
         ));
     }
+    let result: { user: any; newUser: true; verified: boolean; } | null = null;
     try {
-        const result = await authService.signUp(email, password, passwordConfirm, username, fullname);
-        // get device name and device id from headers
         const deviceId = req.headers['x-device-id'] as string;
         const deviceName = req.headers['x-device-name'] as string;
-        await authService.registerDevice(result.user.uid, deviceId, deviceName);
+        result = await authService.signUp(email, password, passwordConfirm, username, fullname, deviceId, deviceName);
         res.status(200).json(result);
     } catch (error) {
         if (error instanceof UserExistsError) {
             return res.status(409).json(createErrorMessage(
                 'Conflict',
                 409,
+                error.message
+            ));
+        }
+        if (error instanceof DeviceNotRegisteredError) {
+            return res.status(400).json(createErrorMessage(
+                'Bad Request',
+                400,
                 error.message
             ));
         }
@@ -69,6 +75,7 @@ export async function signIn(req: express.Request, res: express.Response) {
                 error.message
             ));
         }
+
         res.status(500).json(createErrorMessage(
             'Server Error',
             500,

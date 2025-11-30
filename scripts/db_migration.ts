@@ -1,6 +1,6 @@
 import PocketBase from 'pocketbase';
 import 'dotenv/config';
-import { CollectionName } from "../utils/collectionName.js";
+import { CollectionName } from "../src/utils/collectionName.js";
 const url = process.env.POCKETBASE_URL || "http://localhost:3001";
 export const pb = new PocketBase(url);
 
@@ -158,7 +158,7 @@ async function createDeviceDetailsCollection() {
         ],
         indexes: [
             `CREATE UNIQUE INDEX idx_deviceId ON ${collectionName} (deviceId)`,
-            `CREATE UNIQUE INDEX idx_deviceName ON ${collectionName} (deviceName)`,
+            `CREATE INDEX idx_deviceName ON ${collectionName} (deviceName)`,
             `CREATE UNIQUE INDEX idx_uid_deviceId ON ${collectionName} (uid, deviceId)`
         ],
         system: false

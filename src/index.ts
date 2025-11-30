@@ -3,9 +3,11 @@ import 'dotenv/config';
 import { BetweenUsRoutes, ServerApiRoutes, version } from './utils/routePaths.js';
 import { serverMiddleware } from "./middleware/server.middleware.js";
 import { clientMiddlewareAllHeaders, clientMiddlewareBasic } from "./middleware/client.middleware.js";
+import { authTokenMiddleware } from "./middleware/authtoken.middleware.js";
 import ServerRoutes from './module/server/server.routes.js';
 import HealthRoutes from './module/health/health.routes.js';
 import AuthRoutes from './module/auth/auth.router.js';
+import UserRoutes from './module/user/user.routes.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(ServerApiRoutes.Token.GenerateServerToken, serverMiddleware, ServerRoutes)
 app.use(BetweenUsRoutes.HealthCheck, clientMiddlewareBasic, HealthRoutes);
 app.use(BetweenUsRoutes.Users.LogIn, clientMiddlewareAllHeaders, AuthRoutes);
+app.use(BetweenUsRoutes.Users.User, authTokenMiddleware, UserRoutes);
 
 app.get('/', (req, res) => {
     res.send(`

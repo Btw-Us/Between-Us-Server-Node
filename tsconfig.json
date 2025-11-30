@@ -21,7 +21,8 @@
   },
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "scripts"
   ],
   "ts-node": {
     "esm": true,
