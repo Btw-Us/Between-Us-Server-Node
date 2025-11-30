@@ -1,5 +1,7 @@
 export enum CollectionName{
     ServerTokens = "ServerTokens",
     Users = "BetweenUsUsers",
-    DeviceDetails = "BetweenUsDeviceDetails"
+    DeviceDetails = "BetweenUsDeviceDetails",
+    UserFriendList = "BetweenUsUserFriendsList",
+    FriendRequest = "FriendRequest"
 }

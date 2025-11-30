@@ -2,13 +2,27 @@ import PocketBase from 'pocketbase';
 import 'dotenv/config';
 import { CollectionName } from "../utils/collectionName.js";
 
-
 const url = process.env.POCKETBASE_URL || "http://localhost:3001";
-
 export const pb = new PocketBase(url);
 
+let isAdminAuthenticated = false;
+
+// Helper to print specific validation errors from PocketBase
+function logErrorDetails(collectionName: string, error: any) {
+    console.error(`❌ Failed to create ${collectionName}:`);
+    if (error?.response?.data) {
+        console.error("   Validation Details:", JSON.stringify(error.response.data, null, 2));
+    } else {
+        console.error("   Error:", error.message || error);
+    }
+}
 
 export async function authenticateAdminIfNeeded() {
+    if (isAdminAuthenticated) {
+        console.log("ℹ️ Admin already authenticated, skipping...");
+        return;
+    }
+
     try {
         const adminEmail = process.env.POCKETBASE_ADMIN_EMAIL;
         const adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD;
@@ -19,406 +33,275 @@ export async function authenticateAdminIfNeeded() {
             );
         }
 
+        pb.autoCancellation(false);
         await pb.collection('_superusers').authWithPassword(adminEmail, adminPassword);
+        isAdminAuthenticated = true;
+        console.log("✅ Admin authenticated successfully");
     } catch (error) {
+        console.error("❌ Admin auth failed:", error);
         throw new Error(`Failed to authenticate as admin: ${(error as Error).message || error}`);
     }
 }
 
+export async function checkCollectionExists(collectionName: string): Promise<boolean> {
+    try {
+        await pb.collections.getOne(collectionName);
+        return true;
+    } catch (err: any) {
+        return err?.status === 404;
+    }
+}
+
+// ✅ ES Module: Check if this file was imported vs directly executed
+if (import.meta.url === `file://${process.argv[1]}`) {
+    createAllAppCollections();
+}
+
 export async function createAllAppCollections() {
     try {
+        // 1. Authenticate FIRST
         await authenticateAdminIfNeeded();
-        const exists = await checkCollectionExists(CollectionName.ServerTokens);
-        if (!exists) {
-            await createServerDatabase();
-        }
-        const userDbExists = await checkCollectionExists(CollectionName.Users);
-        if (!userDbExists) {
-            await createUserAuthCollection();
+
+        // 2. Safely delete default "users" collection
+        try {
+            const defaultUsersExists = await checkCollectionExists("users");
+            // Only delete if our custom collection name isn't also "users"
+            if (defaultUsersExists && (CollectionName.Users as string) !== 'users') {
+                await pb.collections.delete("users");
+                console.log('🗑️ Deleted default "users" collection');
+            }
+        } catch (error: any) {
+            console.log("⚠️ Could not delete default users collection (may not exist):", error.status);
+        }   
+
+        // 3. Create collections in proper order
+        const collectionsToCreate = [
+            { name: CollectionName.ServerTokens, fn: createServerDatabase },
+            { name: CollectionName.DeviceDetails, fn: createDeviceDetailsCollection },
+            { name: CollectionName.FriendRequest, fn: createFriendRequestCollection },
+            { name: CollectionName.UserFriendList, fn: createFriendsListCollection },
+            { name: CollectionName.Users, fn: createUserAuthCollection }
+        ];
+
+        for (const { name, fn } of collectionsToCreate) {
+            console.log(`🟡 Creating ${name}...`);
+            try {
+                await fn();
+            } catch (error: any) {
+                // FIX: Check for specific "name exists" validation error
+                const isNameConflict = error?.response?.data?.name?.code === 'validation_collection_name_exists';
+
+                // If it's a 409 OR a name validation conflict, we treat it as "Already exists"
+                if (error?.status === 409 || isNameConflict) {
+                    console.log(`ℹ️ ${name} already exists, skipping creation.`);
+                } else {
+                    // It's a real error (e.g., invalid field definition), so we crash
+                    logErrorDetails(name, error);
+                    throw error;
+                }
+            }
         }
 
-        const deviceDetailsExists = await checkCollectionExists(CollectionName.DeviceDetails);
-        if (!deviceDetailsExists) {
-            await createDeviceDetailsCollection();
-        }
+        // 4. Setup relations
+        console.log("🔗 Setting up relations...");
+        await setupRelations();
 
-        const userCollectionExists = await checkCollectionExists("users");
-        if (userCollectionExists) {
-            await pb.collections.delete("users");
-            console.log('Deleted default "users" collection to avoid conflicts.');
-        }
-
-
+        console.log("✅ All collections and relations created successfully!");
     } catch (error) {
-        console.error("Error during PocketBase createAllAppCollectionsialization:", error);
+        console.error("❌ Fatal error during initialization:", error);
+        process.exit(1);
     }
 }
-
-createAllAppCollections();
-
-
-function checkCollectionExists(collectionName: string): Promise<boolean> {
-    return pb.collections.getOne(collectionName)
-        .then(() => true)
-        .catch((err: any) => {
-            if (err?.status === 404) {
-                return false;
-            }
-            throw new Error(`Failed to check collection "${collectionName}": ${err?.message || err}`);
-        });
-}
-
 
 async function createServerDatabase() {
-    try {
+    // FIX: Ensure name is valid (lowercase/snake_case)
+    const name = CollectionName.ServerTokens;
 
-        const base = await pb.collections.create({
-            name: CollectionName.ServerTokens,
-            type: 'base',
-            createRule: '',
-            updateRule: null,
-            deleteRule: null,
-            listRule: null,
-            viewRule: null,
+    const base = await pb.collections.create({
+        name: name,
+        type: 'base',
+        listRule: null,
+        viewRule: null,
+        createRule: '',
+        updateRule: null,
+        deleteRule: null,
+        fields: [
+            {
+                name: 'generated_from',
+                type: 'select',
+                required: true,
+                // FIX: Updated structure for Select fields
+                maxSelect: 1,
+                values: ['SERVER', 'CLIENT', 'ADMIN_PANEL']
+            },
+            { name: 'token', type: 'text', required: true },
+            { name: 'expires_at', type: 'date', required: false }
+        ]
+    });
+    console.log("✅ ServerTokens created:", base.name);
+}
+
+async function createDeviceDetailsCollection() {
+    const collectionName = CollectionName.DeviceDetails;
+    const deviceCollection = await pb.collections.create({
+        name: collectionName,
+        type: 'base',
+        listRule: '@request.auth.uid != ""',
+        viewRule: '@request.auth.uid != ""',
+        createRule: '@request.auth.uid != ""',
+        updateRule: '@request.auth.uid != ""',
+        deleteRule: null,
+        fields: [
+            { name: 'deviceId', type: 'text', required: true, max: 36 },
+            { name: 'deviceName', type: 'text', required: true },
+            { name: 'uuid', type: 'text', required: true, max: 36 },
+            { name: 'created', type: 'autodate', onCreate: true },
+            { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true },
+            { name: 'lastLoginAt', type: 'date' } // Changed from autodate to date for manual control if needed
+        ],
+        indexes: [
+            `CREATE UNIQUE INDEX idx_deviceId ON ${collectionName} (deviceId)`,
+            `CREATE UNIQUE INDEX idx_uuid ON ${collectionName} (uuid)`,
+            `CREATE UNIQUE INDEX idx_deviceId_uuid ON ${collectionName} (deviceId, uuid)`
+        ],
+        system: false
+    });
+    console.log("✅ DeviceDetails created:", deviceCollection.name);
+}
+
+async function createFriendRequestCollection() {
+    const collectionName = CollectionName.FriendRequest;
+    await pb.collections.create({
+        name: collectionName,
+        type: 'base',
+        listRule: '@request.auth.uid != ""',
+        viewRule: '@request.auth.uid != ""',
+        createRule: '@request.auth.uid != ""',
+        updateRule: '@request.auth.uid != ""',
+        deleteRule: null,
+        fields: [
+            { name: 'senderuid', type: 'text', required: true, max: 36 },
+            { name: 'revieveruid', type: 'text', required: true, max: 36 },
+            {
+                name: 'state',
+                type: 'select',
+                required: false,
+                // FIX: Updated structure for Select fields
+                maxSelect: 1,
+                values: ['accept', 'decline']
+            },
+            { name: 'created', type: 'autodate', onCreate: true },
+            { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true }
+        ],
+        system: false
+    });
+    console.log("✅ FriendRequest created:", collectionName);
+}
+
+async function createFriendsListCollection() {
+    const collectionName = CollectionName.UserFriendList;
+    await pb.collections.create({
+        name: collectionName,
+        type: 'base',
+        listRule: '@request.auth.uid != ""',
+        viewRule: '@request.auth.uid != ""',
+        createRule: '@request.auth.uid != ""',
+        updateRule: '@request.auth.uid != ""',
+        deleteRule: null,
+        fields: [
+            { name: 'useruid', type: 'text', required: true, max: 36 },
+            { name: 'frienduid', type: 'text', required: true, max: 36 },
+            { name: 'chat_room_id', type: 'text', required: false },
+            { name: 'created', type: 'autodate', onCreate: true },
+            { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true }
+        ],
+        indexes: [
+            `CREATE UNIQUE INDEX idx_user_friend ON ${collectionName} (useruid, frienduid)`,
+            `CREATE UNIQUE INDEX idx_chat_room ON ${collectionName} (chat_room_id)`,
+            `CREATE UNIQUE INDEX idx_chat_user_friend ON ${collectionName} (chat_room_id, frienduid, useruid)`,
+            `CREATE UNIQUE INDEX idx_useruid ON ${collectionName} (useruid)`,
+            `CREATE UNIQUE INDEX idx_frienduid ON ${collectionName} (frienduid)`
+        ],
+        system: false
+    });
+    console.log("✅ FriendsList created:", collectionName);
+}
+
+async function createUserAuthCollection() {
+    const collectionName = CollectionName.Users;
+    await pb.collections.create({
+        name: collectionName,
+        type: 'auth',
+        listRule: '@request.auth.uid != ""',
+        viewRule: '@request.auth.uid != ""',
+        createRule: '',
+        updateRule: '@request.auth.uid != ""',
+        deleteRule: null,
+        fields: [
+            { name: 'uid', type: 'text', required: true, max: 36 },
+            { name: 'fullname', type: 'text', required: false, max: 100 },
+            // Note: 'username' and 'email' are built-in for auth collections
+            { name: 'created', type: 'autodate', onCreate: true },
+            { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true }
+        ],
+        system: false,
+        passwordAuth: { enabled: true, identityFields: ['email'] }
+    });
+    console.log("✅ Users auth collection created:", collectionName);
+}
+
+export async function setupRelations() {
+    try {
+        // Get collection IDs
+        const usersCollection = await pb.collections.getOne(CollectionName.Users);
+        const deviceCollection = await pb.collections.getOne(CollectionName.DeviceDetails);
+        const friendRequestCollection = await pb.collections.getOne(CollectionName.FriendRequest);
+        const friendsListCollection = await pb.collections.getOne(CollectionName.UserFriendList);
+
+        // Update Users collection with relation fields
+        // We fetch existing fields to avoid overwriting them accidentally
+        const currentFields = usersCollection.fields || [];
+
+        // Remove existing relation fields if they exist to prevent duplicates
+        const baseFields = currentFields.filter((f: any) =>
+            !['devicedetails', 'friendslist', 'friendsrequestlist'].includes(f.name)
+        );
+
+        await pb.collections.update(usersCollection.id, {
             fields: [
+                ...baseFields,
                 {
-                    name: 'generated_from',
-                    type: 'select',
-                    required: true,
+                    name: 'devicedetails',
+                    type: 'relation',
+                    collectionId: deviceCollection.id,
                     maxSelect: 1,
-                    values: [
-                        'SERVER',
-                        'CLIENT',
-                        'ADMIN_PANEL'
-                    ]
-                },
-                // token field (text field)
-                {
-                    name: 'token',
-                    type: 'text',
-                    required: true
-                },
-                // expires_at field (datetime field - optional)
-                {
-                    name: 'expires_at',
-                    type: 'date', // PocketBase uses 'date' for datetime
-                    required: false // makes it optional
-                }
-            ],
-        });
-        console.log("PocketBase createAllAppCollectionsialized with base:", base);
-    } catch (error) {
-        console.error("Error createAllAppCollectionsializing PocketBase:", error);
-        throw new Error(`Failed to createAllAppCollectionsialize PocketBase: ${(error as Error).message || error}`);
-    }
-}
-
-
-async function createUserAuthCollection(): Promise<void> {
-    try {
-        const collectionName = CollectionName.Users; // or "users"
-
-        // Check if collection already exists
-        const exists = await checkCollectionExists(collectionName);
-        if (exists) {
-            console.log(`Collection "${collectionName}" already exists, skipping creation.`);
-            return;
-        }
-
-        // Create the users (auth) collection with all exact specifications
-        const userCollection = await pb.collections.create({
-            name: collectionName,
-            type: 'auth',
-            listRule: '@request.auth.uid != ""',
-            viewRule: '@request.auth.uid != ""',
-            createRule: '',
-            updateRule: '@request.auth.uid != ""',
-            deleteRule: null,
-            fields: [
-                // Custom uid field (non-system)
-                {
-                    name: 'uid',
-                    type: 'text',
-                    required: true,
-                    max: 36,
-                    min: 0,
-                    pattern: '',
-                    autogeneratePattern: '',
-                    hidden: false,
-                    presentable: false,
-                    primaryKey: false,
-                    system: false,
-                },
-                {
-                    name: 'created',
-                    type: 'autodate',
+                    cascadeDelete: false,
                     required: false,
-                    hidden: false,
-                    presentable: false,
-                    system: false,
-                    onCreate: true,
-                    onUpdate: false,
+                    system: false
                 },
                 {
-                    name: 'updated',
-                    type: 'autodate',
+                    name: 'friendslist',
+                    type: 'relation',
+                    collectionId: friendsListCollection.id,
+                    maxSelect: 999,
+                    cascadeDelete: false,
                     required: false,
-                    hidden: false,
-                    presentable: false,
-                    system: false,
-                    onCreate: true,
-                    onUpdate: true,
+                    system: false
                 },
                 {
-                    name: 'username',
-                    type: 'text',
+                    name: 'friendsrequestlist',
+                    type: 'relation',
+                    collectionId: friendRequestCollection.id,
+                    maxSelect: 999,
+                    cascadeDelete: false,
                     required: false,
-                    max: 10,
-                    min: 0,
-                    pattern: '',
-                },
-                {
-                    name: 'fullname',
-                    type: 'text',
-                    required: false,
-                    max: 100,
-                    min: 0,
-                    pattern: '',
+                    system: false
                 }
-                // PocketBase auto-creates system auth fields: id, password, tokenKey, email, 
-                // emailVisibility, verified with exact specs from your JSON
-            ],
-            indexes: [
-                `CREATE UNIQUE INDEX idx_tokenKey_c9nw1nmuhs ON ${collectionName} (tokenKey)`,
-                `CREATE UNIQUE INDEX idx_email_c9nw1nmuhs ON ${collectionName} (email) WHERE email != ''`,
-                `CREATE UNIQUE INDEX idx_MkNFR46IPG ON ${collectionName} (uid)`,
-                `CREATE INDEX idx_3eKKoBSr7w ON ${collectionName} (password, email)`,
-                `CREATE INDEX idx_7fXKLoBSr8 ON ${collectionName} (username)`,
-            ],
-            system: false,
-            // Auth configurations
-            authRule: '',
-            manageRule: null,
-            authAlert: {
-                enabled: true,
-                emailTemplate: {
-                    subject: 'Login from a new location',
-                    body: `<p>Hello,</p>
-<p>We noticed a login to your {APP_NAME} account from a new location:</p>
-<p><em>{ALERT_INFO}</em></p>
-<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>
-<p>If this was you, you may disregard this email.</p>
-<p>
-  Thanks,<br/>
-  {APP_NAME} team
-</p>`
-                }
-            },
-            oauth2: {
-                enabled: false,
-                mappedFields: {
-                    id: '',
-                    name: '',
-                    username: '',
-                    avatarURL: ''
-                }
-            },
-            passwordAuth: {
-                enabled: true,
-                identityFields: ['email']
-            },
-            mfa: {
-                enabled: false,
-                duration: 1800,
-                rule: ''
-            },
-            otp: {
-                enabled: true,
-                duration: 180,
-                length: 8,
-                emailTemplate: {
-                    subject: 'OTP for {APP_NAME}',
-                    body: `<p>Hello,</p>
-<p>Your one-time password is: <strong>{OTP}</strong></p>
-<p><i>If you didn't ask for the one-time password, you can ignore this email.</i></p>
-<p>
-  Thanks,<br/>
-  {APP_NAME} team
-</p>`
-                }
-            },
-            authToken: {
-                duration: 604800
-            },
-            passwordResetToken: {
-                duration: 1800
-            },
-            emailChangeToken: {
-                duration: 1800
-            },
-            verificationToken: {
-                duration: 259200
-            },
-            fileToken: {
-                duration: 180
-            },
-            verificationTemplate: {
-                subject: 'Verify your {APP_NAME} email',
-                body: `<p>Hello,</p>
-<p>Thank you for joining us at {APP_NAME}.</p>
-<p>Click on the button below to verify your email address.</p>
-<p>
-  <a class="btn" href="{APP_URL}/_/#/auth/confirm-verification/{TOKEN}" target="_blank" rel="noopener">Verify</a>
-</p>
-<p>
-  Thanks,<br/>
-  {APP_NAME} team
-</p>`
-            },
-            resetPasswordTemplate: {
-                subject: 'Reset your {APP_NAME} password',
-                body: `<p>Hello,</p>
-<p>Click on the button below to reset your password.</p>
-<p>
-  <a class="btn" href="{APP_URL}/_/#/auth/confirm-password-reset/{TOKEN}" target="_blank" rel="noopener">Reset password</a>
-</p>
-<p><i>If you didn't ask to reset your password, you can ignore this email.</i></p>
-<p>
-  Thanks,<br/>
-  {APP_NAME} team
-</p>`
-            },
-            confirmEmailChangeTemplate: {
-                subject: 'Confirm your {APP_NAME} new email address',
-                body: `<p>Hello,</p>
-<p>Click on the button below to confirm your new email address.</p>
-<p>
-  <a class="btn" href="{APP_URL}/_/#/auth/confirm-email-change/{TOKEN}" target="_blank" rel="noopener">Confirm new email</a>
-</p>
-<p><i>If you didn't ask to change your email address, you can ignore this email.</i></p>
-<p>
-  Thanks,<br/>
-  {APP_NAME} team
-</p>`
-            }
+            ]
         });
 
-        console.log(`✅ User auth collection "${collectionName}" created successfully:`, userCollection);
-    } catch (error) {
-        if ((error as any)?.status === 409) {
-            console.log(`Collection "${CollectionName.Users}" already exists (409).`);
-            return;
-        }
-        console.error("❌ Failed to create User auth collection:", error);
-        throw new Error(`Failed to create User auth collection: ${(error as Error).message || error}`);
-    }
-}
-
-
-async function createDeviceDetailsCollection(): Promise<void> {
-    try {
-        const collectionName = CollectionName.DeviceDetails;
-        const exists = await checkCollectionExists(collectionName);
-        if (exists) {
-            console.log(`Collection "${collectionName}" already exists, skipping creation.`);
-            return;
-        }
-
-        // Create the UserDevice (base) collection
-        const deviceCollection = await pb.collections.create({
-            name: collectionName,
-            type: 'base',
-            listRule: '@request.auth.uid != ""',
-            viewRule: '@request.auth.uid != ""',
-            createRule: '@request.auth.uid != ""',
-            updateRule: '@request.auth.uid != ""',
-            deleteRule: null,
-            fields: [
-                {
-                    name: 'deviceId',
-                    type: 'text',
-                    required: true,
-                    max: 36,
-                    min: 0,
-                    pattern: '',
-                    autogeneratePattern: '',
-                    hidden: false,
-                    presentable: false,
-                    primaryKey: false,
-                    system: false,
-                },
-                {
-                    name: 'deviceName',
-                    type: 'text',
-                    required: true,
-                    max: 0,
-                    min: 0,
-                    pattern: '',
-                    autogeneratePattern: '',
-                    hidden: false,
-                    presentable: false,
-                    primaryKey: false,
-                    system: false,
-                },
-                {
-                    name: 'uid',
-                    type: 'text',
-                    required: true,
-                    max: 36,
-                    min: 0,
-                    pattern: '',
-                    autogeneratePattern: '',
-                    hidden: false,
-                    presentable: false,
-                    primaryKey: false,
-                    system: false,
-                },
-                {
-                    name: 'created',
-                    type: 'autodate',
-                    required: false,
-                    hidden: false,
-                    presentable: false,
-                    system: false,
-                    onCreate: true,
-                    onUpdate: false,
-                },
-                {
-                    name: 'updated',
-                    type: 'autodate',
-                    required: false,
-                    hidden: false,
-                    presentable: false,
-                    system: false,
-                    onCreate: true,
-                    onUpdate: true,
-                },
-                {
-                    name: 'lastLoginAt',
-                    type: 'autodate',
-                    required: false,
-                    hidden: false,
-                    presentable: false,
-                    system: false,
-                    onCreate: true,
-                    onUpdate: true,
-                },
-            ],
-            indexes: [
-                `CREATE UNIQUE INDEX idx_nbFzBiXXVC ON ${collectionName} (deviceId)`,
-                `CREATE UNIQUE INDEX idx_ahd9NSmWZR ON ${collectionName} (uid)`,
-                `CREATE UNIQUE INDEX idx_zpzHlKXFF8 ON ${collectionName} (deviceId, uid)`
-            ],
-            system: false,
-        });
-
-        console.log(`✅ DeviceDetails collection "${collectionName}" created successfully:`, deviceCollection);
-    } catch (error) {
-        if ((error as any)?.status === 409) {
-            console.log(`Collection "${CollectionName.DeviceDetails}" already exists (409).`);
-            return;
-        }
-        console.error("❌ Failed to create DeviceDetails collection:", error);
-        throw new Error(`Failed to create DeviceDetails collection: ${(error as Error).message || error}`);
+        console.log("✅ Relations configured successfully!");
+    } catch (error: any) {
+        logErrorDetails("Relations", error);
     }
 }

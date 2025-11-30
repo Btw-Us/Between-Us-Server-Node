@@ -35,7 +35,7 @@ app.get('/', (req, res) => {
     
     🔧 Status: Server is running and ready to connect!
     
-    Built with ❤️ using Express,MongoDB
+    Built with ❤️ using Express,PocketBase,TypeScript.
     </pre>
         `);
 });
