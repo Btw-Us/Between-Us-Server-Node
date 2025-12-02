@@ -19,6 +19,11 @@
     "moduleDetection": "force",
     "skipLibCheck": true
   },
+  "exclude": [
+    "dist",
+    "scripts/node_modules",
+    "scripts"
+  ],
   "ts-node": {
     "esm": true,
     "experimentalSpecifierResolution": "node"

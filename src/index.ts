@@ -1,11 +1,16 @@
 import express from 'express';
+import http from 'http';
 import 'dotenv/config';
-import { BetweenUsRoutes, ServerApiRoutes, version } from './utils/routePaths.js';
+// import { WebSocketServer } from 'ws'
+import { BetweenUsRoutes, ServerApiRoutes, version, BetweenUsRoutesWs } from './utils/routePaths.js';
 import { serverMiddleware } from "./middleware/server.middleware.js";
 import { clientMiddlewareAllHeaders, clientMiddlewareBasic } from "./middleware/client.middleware.js";
+import { authTokenMiddleware } from "./middleware/authtoken.middleware.js";
+
 import ServerRoutes from './module/server/server.routes.js';
 import HealthRoutes from './module/health/health.routes.js';
 import AuthRoutes from './module/auth/auth.router.js';
+import UserRoutes from './module/user/user.routes.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -15,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(ServerApiRoutes.Token.GenerateServerToken, serverMiddleware, ServerRoutes)
 app.use(BetweenUsRoutes.HealthCheck, clientMiddlewareBasic, HealthRoutes);
 app.use(BetweenUsRoutes.Users.LogIn, clientMiddlewareAllHeaders, AuthRoutes);
+app.use(BetweenUsRoutes.Users.User, authTokenMiddleware, UserRoutes);
 
 app.get('/', (req, res) => {
     res.send(`
@@ -41,7 +47,22 @@ app.get('/', (req, res) => {
 });
 
 
+const server = http.createServer(app);
+// const wss = new WebSocketServer({ server, path: '/' });
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+// wss.on('connection', (ws, req) => {
+//     console.log('New WebSocket connection established');
+//     // Here you can add more event listeners for the ws object
+//     ws.on('message', (message) => {
+//         console.log('Received message:', message);
+//         // Echo the message back to the client
+//         ws.send(`Server received: ${message}`);
+//     });
+//     ws.on('close', () => {
+//         console.log('WebSocket connection closed');
+//     });
+// });
+
+server.listen(port, () => {
+    console.log(`🚀 BetweenUsServer Chat API ${version} is running at http://localhost:${port}`)
 });
