@@ -1,10 +1,11 @@
+import { create } from "domain";
 import { pb } from "../../../lib/pocketbase.js";
 import { CollectionName, FriendRequestStatus } from "../../../utils/collectionName.js";
 
 
 export class UserFriendsService {
 
-    async sendFriendRequest(fromUserId: string, toUserId: string) : Promise<any> {
+    async sendFriendRequest(fromUserId: string, toUserId: string): Promise<any> {
         var senderuid = fromUserId;
         var receiveruid = toUserId;
         // check if a friend request already exists
@@ -23,7 +24,6 @@ export class UserFriendsService {
             state: FriendRequestStatus.Pending
         });
         // add references to users' friend request lists
-       
         try {
             const senderUser = await pb.collection(CollectionName.Users).getFirstListItem(`uid = "${senderuid}"`);
             const receiverUser = await pb.collection(CollectionName.Users).getFirstListItem(`uid = "${receiveruid}"`);
@@ -47,14 +47,14 @@ export class UserFriendsService {
         return newRequest;
     }
 
-    async getAllSentFriendRequests(userId: string) : Promise<any[]> {
+    async getAllSentFriendRequests(userId: string): Promise<any[]> {
         const requests = await pb.collection(CollectionName.FriendRequest).getFullList({
             filter: `senderuid = "${userId}"`
         });
         if (requests.length === 0) {
             return [];
         }
-        
+
         // get the send user info
         const detailedRequests = await Promise.all(requests.map(async (request) => {
             const receiverUser = await pb.collection(CollectionName.Users).getFirstListItem(`uid = "${request.recieveruid}"`);
@@ -66,7 +66,7 @@ export class UserFriendsService {
         return detailedRequests;
     }
 
-    async getAllReceivedFriendRequests(userId: string) : Promise<any[]> {
+    async getAllReceivedFriendRequests(userId: string): Promise<any[]> {
         const requests = await pb.collection(CollectionName.FriendRequest).getFullList({
             filter: `recieveruid = "${userId}"`
         });
@@ -86,8 +86,56 @@ export class UserFriendsService {
         return detailedRequests;
     }
 
-    async deleteFriendRequest(requestId: string) : Promise<void> {
+    async updateFriendRequestStatus(requestId: string, uid: string, newStatus: FriendRequestStatus): Promise<any> {
+        try {
+            // update only when senderuid is equal to useruid
+            const getRequest = pb.collection(CollectionName.FriendRequest).getOne(requestId);
+
+            console.log("🔍 Retrieved friend request:", await getRequest);
+            if ((await getRequest).senderuid !== uid && (await getRequest).recieveruid !== uid) {
+                throw new Error("User is not authorized to update this friend request.");
+            }
+            const updatedRequest = await pb.collection(CollectionName.FriendRequest).update(requestId, {
+                state: newStatus
+            });
+            console.log("✅ Friend request status updated:", updatedRequest);
+
+            // add that to friend list if accepted 
+            if (newStatus === FriendRequestStatus.Accepted) {
+                //    add it to new collection UserFriendList
+                const friendsListEntry = await pb.collection(CollectionName.UserFriendList)
+                    .create(
+                        {
+                            useruid: updatedRequest.senderuid,
+                            frienduid: updatedRequest.recieveruid,
+                        }
+                    );
+                const senderUser = await pb.collection(CollectionName.Users).getFirstListItem(`uid = "${friendsListEntry.useruid}"`);
+                const receiverUser = await pb.collection(CollectionName.Users).getFirstListItem(`uid = "${friendsListEntry.frienduid}"`);
+                await pb.collection(CollectionName.Users).update(senderUser.id,
+                    { friendslist: [...(senderUser.friendslist || []), friendsListEntry.id] }
+                );
+                await pb.collection(CollectionName.Users).update(receiverUser.id,
+                    { friendslist: [...(receiverUser.friendslist || []), friendsListEntry.id] }
+                );
+                // delete the friend request after accepting
+                await this.deleteFriendRequest(requestId);
+            }
+            return updatedRequest;
+        } catch (error) {
+            console.error("❌ Error updating friend request status:", error);
+            this.deleteFriendListEntry(requestId);
+            throw new Error("Failed to update friend request status.");
+        }
+    }
+
+
+    async deleteFriendRequest(requestId: string): Promise<void> {
         await pb.collection(CollectionName.FriendRequest).delete(requestId);
+    }
+
+    async deleteFriendListEntry(id: string): Promise<void> {
+        await pb.collection(CollectionName.UserFriendList).delete(id);
     }
 
 }

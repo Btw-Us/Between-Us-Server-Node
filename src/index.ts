@@ -6,6 +6,7 @@ import { BetweenUsRoutes, ServerApiRoutes, version, BetweenUsRoutesWs } from './
 import { serverMiddleware } from "./middleware/server.middleware.js";
 import { clientMiddlewareAllHeaders, clientMiddlewareBasic } from "./middleware/client.middleware.js";
 import { authTokenMiddleware } from "./middleware/authtoken.middleware.js";
+
 import ServerRoutes from './module/server/server.routes.js';
 import HealthRoutes from './module/health/health.routes.js';
 import AuthRoutes from './module/auth/auth.router.js';

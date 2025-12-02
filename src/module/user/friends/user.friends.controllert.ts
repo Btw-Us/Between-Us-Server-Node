@@ -1,5 +1,5 @@
 import { UserFriendsService, FriendRequestAlreadyExistsError } from "../../../module/user/friends/user.friends.service.js";
-
+import { FriendRequestStatus } from "../../../utils/collectionName.js";
 const userFriendsService = new UserFriendsService();
 
 
@@ -79,4 +79,37 @@ export async function getAllReceivedFriendRequests(req: any, res: any) {
             message: `Failed to get all received friend requests: ${(error as Error).message || error}`
         });
     }
+}
+
+export async function updateFriendRequestStatus(req: any, res: any) {
+    const { requestId } = req.params;
+    const { userId, newStatus } = req.body;
+    const tokenUserId = req.headers['X-User-Id'] || req.headers['x-user-id'];
+    if (tokenUserId !== userId) {
+        return res.status(403).json({
+            error: 'Forbidden',
+            message: 'User is not authorized to update this friend request.'
+        });
+    }
+    
+    if (!requestId || !userId || !newStatus) {
+        return res.status(400).json({
+            error: 'Bad Request',
+            message: 'Missing required parameters: requestId, userId, and newStatus'
+        });
+    }
+    try {
+        const statusEnum = newStatus as FriendRequestStatus; 
+        console.log('Received updateFriendRequestStatus request:', { requestId, userId, newStatus });  
+        const updatedRequest = await userFriendsService.updateFriendRequestStatus(requestId, userId, statusEnum);
+        res.status(200).json({
+            updatedRequest
+        });
+    } catch (error) {
+        console.error('Error updating friend request status:', error);
+        res.status(500).json({
+            error: 'Server Error',
+            message: `Failed to update friend request status: ${(error as Error).message || error}`
+        });
+    }   
 }

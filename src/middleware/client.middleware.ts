@@ -28,6 +28,7 @@ export async function clientMiddlewareBasic(req: express.Request, res: express.R
         // all good, proceed to for token
         var serverService = new ServerService();
         const isValid = await serverService.checkIsValidServerToken(token);
+        
         if (!isValid) {
             return res.status(401).json(createErrorMessage(
                 'Unauthorized',
