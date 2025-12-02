@@ -5,3 +5,9 @@ export enum CollectionName{
     UserFriendList = "BetweenUsUserFriendsList",
     FriendRequest = "FriendRequest"
 }
+
+export enum FriendRequestStatus {
+    Pending = "pending",
+    Accepted = "accepted",
+    Rejected = "rejected"
+}

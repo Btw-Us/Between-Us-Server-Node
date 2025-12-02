@@ -21,7 +21,7 @@
   },
   "exclude": [
     "dist",
-    "node_modules",
+    "scripts/node_modules",
     "scripts"
   ],
   "ts-node": {

@@ -178,23 +178,23 @@ async function createFriendRequestCollection() {
         deleteRule: null,
         fields: [
             { name: 'senderuid', type: 'text', required: true, max: 36 },
-            { name: 'revieveruid', type: 'text', required: true, max: 36 },
+            { name: 'recieveruid', type: 'text', required: true, max: 36 },
             {
                 name: 'state',
                 type: 'select',
                 required: false,
                 // FIX: Updated structure for Select fields
                 maxSelect: 1,
-                values: ['accept', 'decline']
+                values: ['pending', 'accepted', 'rejected']
             },
             { name: 'created', type: 'autodate', onCreate: true },
             { name: 'updated', type: 'autodate', onCreate: true, onUpdate: true }
         ],
         indexes: [
             `CREATE UNIQUE INDEX idx_senderuid ON ${collectionName} (senderuid)`,
-            `CREATE UNIQUE INDEX idx_revieweruid ON ${collectionName} (revieveruid)`,
+            `CREATE UNIQUE INDEX idx_recieveruid ON ${collectionName} (recieveruid)`,
             `CREATE UNIQUE INDEX idx_state ON ${collectionName} (state)`,
-            `CREATE UNIQUE INDEX idx_revieweruid_senderuid_state ON ${collectionName} (revieveruid, senderuid, state)`,
+            `CREATE UNIQUE INDEX idx_recieveruid_senderuid_state ON ${collectionName} (recieveruid, senderuid, state)`,
         ],
         system: false
     });

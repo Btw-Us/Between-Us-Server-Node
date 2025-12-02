@@ -6,7 +6,7 @@ const BetweenUsRoutes = {
     HealthCheck: `${basePath}/health`,
     Users: {
         LogIn: `${basePath}/auth/user/login`,
-        User:`${basePath}/user`,
+        User:`${basePath}/user`
     },
 };
 
